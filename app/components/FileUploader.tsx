@@ -56,7 +56,7 @@ export default function FileUploader({ onFilesUploaded }: FileUploaderProps) {
       />
       <button
         onClick={handleClick}
-        className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm md:text-base"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +73,8 @@ export default function FileUploader({ onFilesUploaded }: FileUploaderProps) {
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        <span>上传文件</span>
+        <span className="md:inline hidden">上传</span>
+        <span className="hidden md:inline">上传文件</span>
       </button>
     </div>
   );

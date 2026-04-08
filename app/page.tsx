@@ -572,7 +572,7 @@ export default function Home() {
           totalStorage={totalStorage}
         />
         <main 
-          className="flex-1 overflow-y-auto p-6 relative"
+          className="flex-1 overflow-y-auto p-4 md:p-6 relative"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
@@ -601,8 +601,8 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="mb-4 md:mb-6">
+            <div className="flex items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
               {breadcrumb.map((item, index) => (
                 <React.Fragment key={item.id || 'root'}>
                   <button
@@ -622,7 +622,7 @@ export default function Home() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-gray-400"
+                      className="text-gray-400 flex-shrink-0"
                     >
                       <path d="m9 18 6-6-6-6" />
                     </svg>
@@ -630,12 +630,12 @@ export default function Home() {
                 </React.Fragment>
               ))}
             </div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{breadcrumb[breadcrumb.length - 1].name}</h2>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{breadcrumb[breadcrumb.length - 1].name}</h2>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsCreateFolderModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 md:px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm md:text-base"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -651,7 +651,8 @@ export default function Home() {
                     <path d="M12 5v14" />
                     <path d="M5 12h14" />
                   </svg>
-                  <span>新建文件夹</span>
+                  <span className="md:inline hidden">新建</span>
+                  <span className="hidden md:inline">新建文件夹</span>
                 </button>
                 <FileUploader onFilesUploaded={handleFilesUploaded} />
               </div>

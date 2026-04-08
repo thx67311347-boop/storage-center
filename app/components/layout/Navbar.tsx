@@ -27,7 +27,7 @@ export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout 
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center px-6">
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center px-4 md:px-6">
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <svg
@@ -44,17 +44,17 @@ export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout 
           >
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Storage Center</h1>
+          <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Storage Center</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="relative flex-1 max-w-md md:max-w-lg">
             <form onSubmit={handleSearchSubmit}>
               <input
                 type="text"
                 placeholder="搜索文件..."
                 value={localSearchQuery}
                 onChange={(e) => setLocalSearchQuery(e.target.value)}
-                className="pl-10 pr-10 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-10 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <button
                 type="submit"
@@ -123,7 +123,7 @@ export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout 
           </div>
           <button
             onClick={handleLogout}
-            className="ml-4 px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="ml-2 md:ml-4 px-3 py-1 md:px-4 md:py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm md:text-base"
           >
             登出
           </button>

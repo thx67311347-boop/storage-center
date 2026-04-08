@@ -353,12 +353,26 @@ export default function Home() {
     });
   };
 
-  const handleFileDownload = (file: FileItem) => {
+  const handleFileDownload = async (file: FileItem) => {
     if (file.url) {
-      const link = document.createElement('a');
-      link.href = file.url;
-      link.download = file.name;
-      link.click();
+      try {
+        // 强制下载所有文件
+        const response = await fetch(file.url);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name;
+        link.click();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading file:', error);
+        // 回退到原始方法
+        const link = document.createElement('a');
+        link.href = file.url;
+        link.download = file.name;
+        link.click();
+      }
     }
   };
 

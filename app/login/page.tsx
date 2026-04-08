@@ -20,12 +20,40 @@ export default function LoginPage() {
       // 模拟登录请求
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // 简单的登录验证
+      // 检查是否是管理员登录
+      const userCredentials = JSON.parse(localStorage.getItem('userCredentials') || '{}');
+      const userData = userCredentials[email];
+
+      if (userData) {
+        // 验证密码（使用Base64解码，实际应使用更安全的方式）
+        const decodedPassword = atob(userData.password);
+        if (decodedPassword === password) {
+          // 登录成功
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userRole', userData.role);
+          localStorage.setItem('currentUser', email);
+          
+          // 根据角色重定向
+          if (userData.role === 'admin') {
+            router.push('/admin');
+          } else {
+            router.push('/');
+          }
+          return;
+        }
+      }
+
+      // 默认测试账号
       if (email === 'user@example.com' && password === 'password123') {
-        // 登录成功，设置登录状态
         localStorage.setItem('isLoggedIn', 'true');
-        // 重定向到首页
+        localStorage.setItem('userRole', 'user');
+        localStorage.setItem('currentUser', email);
         router.push('/');
+      } else if (email === 'admin@example.com' && password === 'admin123') {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('currentUser', email);
+        router.push('/admin');
       } else {
         setError('邮箱或密码错误');
       }
@@ -192,8 +220,8 @@ export default function LoginPage() {
         <div className="mt-8 text-center">
           <div className="bg-gray-200 dark:bg-gray-700 h-px w-full mb-6"></div>
           <p className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <span className="block">测试账号: user@example.com</span>
-            <span className="block">测试密码: password123</span>
+            <span className="block">普通用户: user@example.com / password123</span>
+            <span className="block">管理员: admin@example.com / admin123</span>
           </p>
         </div>
       </div>

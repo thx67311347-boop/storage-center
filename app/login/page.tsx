@@ -49,23 +49,10 @@ export default function LoginPage() {
         }
       }
 
-      // 默认测试账号
-      if (email === 'user@example.com' && password === 'password123') {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userRole', 'user');
-        localStorage.setItem('currentUser', email);
-        console.log('Login successful (test user):', { email, role: 'user' });
-        router.push('/');
-      } else if (email === 'admin@example.com' && password === 'admin123') {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userRole', 'admin');
-        localStorage.setItem('currentUser', email);
-        console.log('Login successful (admin):', { email, role: 'admin' });
-        router.push('/admin');
-      } else {
-        console.log('Login failed:', { email });
-        setError('邮箱或密码错误');
-      }
+      // 验证用户输入
+      console.log('Login attempt:', { email });
+      setError('邮箱或密码错误');
+      console.log('Login failed:', { email });
     } catch (err) {
       setError('登录失败，请稍后重试');
     } finally {
@@ -228,9 +215,8 @@ export default function LoginPage() {
 
         <div className="mt-8 text-center">
           <div className="bg-gray-200 dark:bg-gray-700 h-px w-full mb-6"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <span className="block">普通用户: user@example.com / password123</span>
-            <span className="block">管理员: admin@example.com / admin123</span>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            请输入您的账号和密码登录
           </p>
         </div>
       </div>

@@ -19,18 +19,28 @@ export default function AdminPage() {
     const checkAdminStatus = () => {
       const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
       const userRole = localStorage.getItem('userRole');
+      const currentUser = localStorage.getItem('currentUser');
+      
+      console.log('Admin page check:', {
+        isLoggedIn,
+        userRole,
+        currentUser
+      });
       
       if (!isLoggedIn) {
+        console.log('Not logged in, redirecting to login');
         router.push('/login');
         return;
       }
       
       if (userRole !== 'admin') {
+        console.log('Not admin, redirecting to home');
         // 如果不是管理员，重定向到普通用户页面
         router.push('/');
         return;
       }
       
+      console.log('Admin access granted');
       setIsAdmin(true);
       setIsLoading(false);
     };

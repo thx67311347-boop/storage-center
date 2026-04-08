@@ -33,6 +33,12 @@ export default function LoginPage() {
           localStorage.setItem('userRole', userData.role);
           localStorage.setItem('currentUser', email);
           
+          console.log('Login successful:', {
+            email,
+            role: userData.role,
+            redirect: userData.role === 'admin' ? '/admin' : '/'
+          });
+          
           // 根据角色重定向
           if (userData.role === 'admin') {
             router.push('/admin');
@@ -48,13 +54,16 @@ export default function LoginPage() {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', 'user');
         localStorage.setItem('currentUser', email);
+        console.log('Login successful (test user):', { email, role: 'user' });
         router.push('/');
       } else if (email === 'admin@example.com' && password === 'admin123') {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', 'admin');
         localStorage.setItem('currentUser', email);
+        console.log('Login successful (admin):', { email, role: 'admin' });
         router.push('/admin');
       } else {
+        console.log('Login failed:', { email });
         setError('邮箱或密码错误');
       }
     } catch (err) {

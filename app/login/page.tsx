@@ -20,6 +20,41 @@ export default function LoginPage() {
       // 模拟登录请求
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // 硬编码的用户凭证检查（确保在任何环境下都能登录）
+      const hardcodedCredentials = {
+        'admin@example.com': {
+          password: 'admin123',
+          role: 'admin'
+        },
+        'user@example.com': {
+          password: 'user123',
+          role: 'user'
+        }
+      };
+
+      // 检查硬编码凭证
+      if (hardcodedCredentials[email] && hardcodedCredentials[email].password === password) {
+        const userData = hardcodedCredentials[email];
+        // 登录成功
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('currentUser', email);
+        
+        console.log('Login successful with hardcoded credentials:', {
+          email,
+          role: userData.role,
+          redirect: userData.role === 'admin' ? '/admin' : '/'
+        });
+        
+        // 根据角色重定向
+        if (userData.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
+        return;
+      }
+
       // 检查是否是管理员登录
       let userCredentialsStr = localStorage.getItem('userCredentials');
       console.log('userCredentialsStr:', userCredentialsStr);

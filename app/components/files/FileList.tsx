@@ -23,6 +23,8 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
   const [sortOrder, setSortOrder] = useState('asc');
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameInputValue, setRenameInputValue] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; name: string; isFromTrash: boolean } | null>(null);
 
   const sortedFiles = [...files].sort((a, b) => {
     let comparison = 0;
@@ -345,7 +347,8 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                     onClick={(e) => {
                       e.stopPropagation();
                       if (file && file.id) {
-                        onFileDelete(file.id, isTrash);
+                        setFileToDelete({ id: file.id, name: file.name, isFromTrash: isTrash });
+                        setShowDeleteConfirm(true);
                       }
                     }}
                     className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-900/20 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
@@ -366,6 +369,62 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
             <div className="text-6xl mb-4">📁</div>
             <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">暂无文件</h3>
             <p className="text-gray-500 dark:text-gray-400">上传文件或创建文件夹开始使用</p>
+          </div>
+        )}
+
+        {/* 删除确认模态框 */}
+        {showDeleteConfirm && fileToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full mx-4 border border-red-200 dark:border-red-900/50">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">确认删除</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {fileToDelete.isFromTrash ? '此操作将永久删除文件，无法恢复' : '此操作将把文件移至回收站'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    您确定要{fileToDelete.isFromTrash ? '永久删除' : '删除'}文件
+                    <span className="font-medium text-red-600 dark:text-red-400"> {fileToDelete.name}</span>吗？
+                  </p>
+                </div>
+                
+                <div className="flex gap-4 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setFileToDelete(null);
+                    }}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (fileToDelete) {
+                        onFileDelete(fileToDelete.id, fileToDelete.isFromTrash);
+                        setShowDeleteConfirm(false);
+                        setFileToDelete(null);
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    {fileToDelete.isFromTrash ? '确认永久删除' : '确认删除'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

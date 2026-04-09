@@ -482,13 +482,16 @@ export default function Home() {
 
   // 处理文件选择
   const handleSelectFile = (fileId: string, isCtrlPressed: boolean) => {
-    // 立即响应，不使用函数式更新
+    // 立即响应，使用函数式更新确保获取最新状态
     if (isCtrlPressed) {
       // Ctrl键按下，切换文件选择状态
-      const newSelectedFiles = selectedFiles.includes(fileId)
-        ? selectedFiles.filter(id => id !== fileId)
-        : [...selectedFiles, fileId];
-      setSelectedFiles(newSelectedFiles);
+      setSelectedFiles(prevSelectedFiles => {
+        if (prevSelectedFiles.includes(fileId)) {
+          return prevSelectedFiles.filter(id => id !== fileId);
+        } else {
+          return [...prevSelectedFiles, fileId];
+        }
+      });
     } else {
       // 没有按下Ctrl键，替换选择
       setSelectedFiles([fileId]);

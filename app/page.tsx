@@ -176,88 +176,53 @@ export default function Home() {
 
   const handleFilesUploaded = async (uploadedFiles: File[]) => {
     try {
+      const currentUser = getCurrentUser();
       const newFiles: FileItem[] = [];
       let totalSize = 0;
       
+      // 验证文件大小限制（100MB）
+      const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+      
       for (const file of uploadedFiles) {
-        // 生成唯一的文件名
-        const fileName = `${Date.now()}_${file.name}`;
-        
-        // 上传文件到 Supabase 存储
-        const { error: storageError } = await supabase
-          .storage
-          .from('files')
-          .upload(fileName, file);
-        
-        if (storageError) {
-          console.error('Error uploading file:', storageError);
+        // 检查文件大小
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`文件 "${file.name}" 超过了100MB的大小限制，无法上传。`);
           continue;
         }
         
-        // 获取文件的公共 URL
-        const { data: urlData, error: urlError } = await supabase
-          .storage
-          .from('files')
-          .getPublicUrl(fileName) as { data: { publicUrl: string }; error: any };
+        // 创建文件对象URL用于本地预览
+        const fileUrl = URL.createObjectURL(file);
         
-        if (urlError) {
-          console.error('Error getting file URL:', urlError);
-          continue;
-        }
+        const newFile: FileItem = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: file.lastModified,
+          url: fileUrl,
+          parentId: currentFolder,
+          isFolder: false,
+          userId: currentUser
+        };
         
-        // 将文件信息保存到数据库
-        const currentUser = getCurrentUser();
-        const { data: dbData, error: dbError } = await (supabase
-          .from('files')
-          .insert({
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            lastModified: file.lastModified,
-            url: urlData.publicUrl,
-            parentId: currentFolder,
-            isFolder: false,
-            userId: currentUser
-          }) as any)
-          .select('*')
-          .single();
-        
-        if (dbError) {
-          console.error('Error saving file to database:', dbError);
-          continue;
-        }
-        
-        newFiles.push(dbData);
+        newFiles.push(newFile);
         totalSize += file.size;
       }
       
-      setFiles(prevFiles => {
-        const updatedFiles = [...prevFiles, ...newFiles];
-        saveFilesToStorage(updatedFiles);
-        return updatedFiles;
-      });
-      setUsedStorage(prev => prev + totalSize);
+      if (newFiles.length > 0) {
+        setFiles(prevFiles => {
+          const updatedFiles = [...prevFiles, ...newFiles];
+          saveFilesToStorage(updatedFiles);
+          return updatedFiles;
+        });
+        setUsedStorage(prev => prev + totalSize);
+        
+        // 显示成功提示
+        alert(`成功上传 ${newFiles.length} 个文件！`);
+      }
     } catch (error) {
       console.error('Error uploading files:', error);
-      // 使用本地处理作为回退
-      const currentUser = getCurrentUser();
-      const newFiles: FileItem[] = uploadedFiles.map(file => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        lastModified: file.lastModified,
-        url: URL.createObjectURL(file),
-        parentId: currentFolder,
-        isFolder: false,
-        userId: currentUser
-      }));
-      setFiles(prevFiles => {
-        const updatedFiles = [...prevFiles, ...newFiles];
-        saveFilesToStorage(updatedFiles);
-        return updatedFiles;
-      });
-      setUsedStorage(prev => prev + uploadedFiles.reduce((acc, file) => acc + file.size, 0));
+      alert('文件上传失败，请重试。');
     }
   };
 

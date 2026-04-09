@@ -298,6 +298,69 @@ export default function Home() {
     });
   };
 
+  const handleMultiFileDelete = async (fileIds: string[], isFromTrash: boolean = false) => {
+    // 计算需要释放的存储空间
+    let totalSizeToRelease = 0;
+    fileIds.forEach(fileId => {
+      const fileToDelete = files.find(file => file.id === fileId);
+      if (fileToDelete && !fileToDelete.isFolder) {
+        totalSizeToRelease += fileToDelete.size;
+      }
+    });
+    
+    if (totalSizeToRelease > 0) {
+      setUsedStorage(prev => prev - totalSizeToRelease);
+    }
+    
+    try {
+      if (isFromTrash) {
+        // 在回收站中，彻底删除多个文件 - 使用循环逐个删除
+        for (const fileId of fileIds) {
+          const { error: dbError } = await supabase
+            .from('files')
+            .delete()
+            .eq('id', fileId);
+          
+          if (dbError) {
+            console.error('Error deleting file from database:', fileId, dbError);
+          }
+        }
+      } else {
+        // 在主页中，标记多个文件为已删除 - 使用循环逐个更新
+        for (const fileId of fileIds) {
+          const { error: dbError } = await (supabase
+            .from('files') as any)
+            .update({ isDeleted: true, deletedAt: Date.now() })
+            .eq('id', fileId);
+          
+          if (dbError) {
+            console.error('Error updating file status in database:', fileId, dbError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting multiple files:', error);
+    }
+    
+    setFiles(prevFiles => {
+      let updatedFiles;
+      if (isFromTrash) {
+        // 在回收站中，从列表中移除
+        updatedFiles = prevFiles.filter(file => !fileIds.includes(file.id));
+      } else {
+        // 在主页中，标记为已删除
+        updatedFiles = prevFiles.map(file => {
+          if (fileIds.includes(file.id)) {
+            return { ...file, isDeleted: true, deletedAt: Date.now() };
+          }
+          return file;
+        });
+      }
+      saveFilesToStorage(updatedFiles);
+      return updatedFiles;
+    });
+  };
+
   const handleFileRename = async (fileId: string, newName: string) => {
     try {
       // 更新数据库中的文件名称
@@ -682,6 +745,7 @@ export default function Home() {
                 onFileRestore={handleFileRestore}
                 onFileShare={handleFileShare}
                 onMultiFileShare={handleMultiFileShare}
+                onMultiFileDelete={handleMultiFileDelete}
                 selectedFiles={selectedFiles}
                 onSelectFile={handleSelectFile}
                 isTrash={selectedSection === 'trash'}

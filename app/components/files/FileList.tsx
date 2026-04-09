@@ -13,18 +13,20 @@ interface FileListProps {
   onFileRestore: (fileId: string) => void;
   onFileShare: (file: FileItem) => void;
   onMultiFileShare: (files: FileItem[]) => void;
+  onMultiFileDelete: (fileIds: string[], isFromTrash: boolean) => void;
   selectedFiles: Set<string>;
   onSelectFile: (fileId: string, isCtrlPressed: boolean) => void;
   isTrash: boolean;
 }
 
-export default function FileList({ files, onFileClick, onFileDelete, onFileDownload, onFileRename, onFileRestore, onFileShare, onMultiFileShare, selectedFiles, onSelectFile, isTrash }: FileListProps) {
+export default function FileList({ files, onFileClick, onFileDelete, onFileDownload, onFileRename, onFileRestore, onFileShare, onMultiFileShare, onMultiFileDelete, selectedFiles, onSelectFile, isTrash }: FileListProps) {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameInputValue, setRenameInputValue] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ id: string; name: string; isFromTrash: boolean } | null>(null);
+  const [showMultiDeleteConfirm, setShowMultiDeleteConfirm] = useState(false);
 
   const sortedFiles = [...files].sort((a, b) => {
     let comparison = 0;
@@ -105,6 +107,15 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
               >
                 <Icon name="share" size={14} color="white" />
                 <span>分享所选文件</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowMultiDeleteConfirm(true);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 text-sm"
+              >
+                <Icon name="trash" size={14} color="white" />
+                <span>删除所选文件</span>
               </button>
             </div>
             <div className="col-span-3 text-right">
@@ -421,6 +432,70 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
                     {fileToDelete.isFromTrash ? '确认永久删除' : '确认删除'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 批量删除确认模态框 */}
+        {showMultiDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full mx-4 border border-red-200 dark:border-red-900/50">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">确认批量删除</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {isTrash ? '此操作将永久删除所选文件，无法恢复' : '此操作将把所选文件移至回收站'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    您确定要{isTrash ? '永久删除' : '删除'}以下 {selectedFiles.size} 个文件吗？
+                  </p>
+                  <div className="max-h-32 overflow-y-auto bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                    {Array.from(selectedFiles).map(fileId => {
+                      const file = files.find(f => f.id === fileId);
+                      return file ? (
+                        <div key={fileId} className="text-sm text-gray-600 dark:text-gray-400 py-1">
+                          • {file.name}
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+                
+                <div className="flex gap-4 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowMultiDeleteConfirm(false);
+                    }}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => {
+                      const fileIds = Array.from(selectedFiles);
+                      onMultiFileDelete(fileIds, isTrash);
+                      // 清除选择
+                      selectedFiles.forEach(fileId => onSelectFile(fileId, true));
+                      setShowMultiDeleteConfirm(false);
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    {isTrash ? '确认永久删除' : '确认删除'}
                   </button>
                 </div>
               </div>

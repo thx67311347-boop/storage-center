@@ -37,11 +37,12 @@ export default function LoginPage() {
 
       console.log('Hardcoded credentials:', hardcodedCredentials);
       console.log('Checking hardcoded credentials for:', lowerCaseEmail);
-      console.log('Password match:', hardcodedCredentials[lowerCaseEmail] && hardcodedCredentials[lowerCaseEmail].password === password);
       
       // 检查硬编码凭证
-      if (hardcodedCredentials[lowerCaseEmail] && hardcodedCredentials[lowerCaseEmail].password === password) {
-        const userData = hardcodedCredentials[lowerCaseEmail];
+      const userData = hardcodedCredentials[lowerCaseEmail];
+      console.log('User data from hardcoded credentials:', userData);
+      
+      if (userData && userData.password === password) {
         console.log('Login successful with hardcoded credentials:', userData);
         
         // 登录成功
@@ -60,6 +61,8 @@ export default function LoginPage() {
         window.location.href = userData.role === 'admin' ? '/admin' : '/';
         return;
       }
+      
+      console.log('Password match:', userData && userData.password === password);
 
       // 检查是否是管理员登录
       let userCredentialsStr = localStorage.getItem('userCredentials');

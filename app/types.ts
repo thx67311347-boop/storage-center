@@ -9,4 +9,5 @@ export interface FileItem {
   parentId?: string | null;
   isDeleted?: boolean;
   deletedAt?: number | null;
+  userId?: string;
 }

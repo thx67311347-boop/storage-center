@@ -32,10 +32,22 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  // 保存文件数据到 localStorage
+  // 获取当前登录用户
+  const getCurrentUser = () => {
+    return localStorage.getItem('currentUser') || 'anonymous';
+  };
+
+  // 获取用户专属的 localStorage 键
+  const getUserStorageKey = () => {
+    const currentUser = getCurrentUser();
+    return `storageCenterFiles_${currentUser}`;
+  };
+
+  // 保存文件数据到 localStorage（用户隔离）
   const saveFilesToStorage = (files: FileItem[]) => {
     try {
-      localStorage.setItem('storageCenterFiles', JSON.stringify(files));
+      const storageKey = getUserStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(files));
     } catch (error) {
       console.error('Error saving files to storage:', error);
     }
@@ -53,14 +65,16 @@ export default function Home() {
       }
     };
 
-    // 从 localStorage 加载文件数据
+    // 从 localStorage 加载文件数据（用户隔离）
     const loadFilesFromStorage = () => {
       try {
-        const storedFiles = localStorage.getItem('storageCenterFiles');
+        const storageKey = getUserStorageKey();
+        const storedFiles = localStorage.getItem(storageKey);
         if (storedFiles) {
           setFiles(JSON.parse(storedFiles));
         } else {
-          // 使用默认数据作为回退
+          // 使用默认数据作为回退（每个用户独立的默认文件）
+          const currentUser = getCurrentUser();
           const defaultFiles = [
             {
               id: '1',
@@ -69,7 +83,8 @@ export default function Home() {
               size: 0,
               lastModified: Date.now(),
               isFolder: true,
-              parentId: null
+              parentId: null,
+              userId: currentUser
             },
             {
               id: '2',
@@ -78,7 +93,8 @@ export default function Home() {
               size: 0,
               lastModified: Date.now() - 86400000,
               isFolder: true,
-              parentId: null
+              parentId: null,
+              userId: currentUser
             },
             {
               id: '3',
@@ -87,16 +103,18 @@ export default function Home() {
               size: 0,
               lastModified: Date.now() - 172800000,
               isFolder: true,
-              parentId: null
+              parentId: null,
+              userId: currentUser
             },
             {
               id: '4',
-              name: 'README.md',
+              name: `欢迎_${currentUser}.md`,
               type: 'text/markdown',
               size: 1024,
               lastModified: Date.now() - 259200000,
               url: '#',
-              parentId: null
+              parentId: null,
+              userId: currentUser
             }
           ];
           setFiles(defaultFiles);
@@ -104,7 +122,8 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Error loading files from storage:', error);
-        // 使用默认数据作为回退
+        // 使用默认数据作为回退（每个用户独立的默认文件）
+        const currentUser = getCurrentUser();
         const defaultFiles = [
           {
             id: '1',
@@ -113,7 +132,8 @@ export default function Home() {
             size: 0,
             lastModified: Date.now(),
             isFolder: true,
-            parentId: null
+            parentId: null,
+            userId: currentUser
           },
           {
             id: '2',
@@ -122,7 +142,8 @@ export default function Home() {
             size: 0,
             lastModified: Date.now() - 86400000,
             isFolder: true,
-            parentId: null
+            parentId: null,
+            userId: currentUser
           },
           {
             id: '3',
@@ -131,16 +152,18 @@ export default function Home() {
             size: 0,
             lastModified: Date.now() - 172800000,
             isFolder: true,
-            parentId: null
+            parentId: null,
+            userId: currentUser
           },
           {
             id: '4',
-            name: 'README.md',
+            name: `欢迎_${currentUser}.md`,
             type: 'text/markdown',
             size: 1024,
             lastModified: Date.now() - 259200000,
             url: '#',
-            parentId: null
+            parentId: null,
+            userId: currentUser
           }
         ];
         setFiles(defaultFiles);
@@ -183,6 +206,7 @@ export default function Home() {
         }
         
         // 将文件信息保存到数据库
+        const currentUser = getCurrentUser();
         const { data: dbData, error: dbError } = await (supabase
           .from('files')
           .insert({
@@ -192,7 +216,8 @@ export default function Home() {
             lastModified: file.lastModified,
             url: urlData.publicUrl,
             parentId: currentFolder,
-            isFolder: false
+            isFolder: false,
+            userId: currentUser
           }) as any)
           .select('*')
           .single();
@@ -215,6 +240,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error uploading files:', error);
       // 使用本地处理作为回退
+      const currentUser = getCurrentUser();
       const newFiles: FileItem[] = uploadedFiles.map(file => ({
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         name: file.name,
@@ -223,7 +249,8 @@ export default function Home() {
         lastModified: file.lastModified,
         url: URL.createObjectURL(file),
         parentId: currentFolder,
-        isFolder: false
+        isFolder: false,
+        userId: currentUser
       }));
       setFiles(prevFiles => {
         const updatedFiles = [...prevFiles, ...newFiles];
@@ -447,6 +474,7 @@ export default function Home() {
 
   const handleCreateFolder = async (folderName: string) => {
     try {
+      const currentUser = getCurrentUser();
       // 将文件夹信息保存到数据库
       const { data: dbData, error: dbError } = await (supabase
         .from('files')
@@ -456,7 +484,8 @@ export default function Home() {
           size: 0,
           lastModified: Date.now(),
           parentId: currentFolder,
-          isFolder: true
+          isFolder: true,
+          userId: currentUser
         }) as any)
         .select('*')
         .single();
@@ -471,7 +500,8 @@ export default function Home() {
           size: 0,
           lastModified: Date.now(),
           isFolder: true,
-          parentId: currentFolder
+          parentId: currentFolder,
+          userId: currentUser
         };
         setFiles(prevFiles => {
           const updatedFiles = [...prevFiles, newFolder];
@@ -488,6 +518,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error creating folder:', error);
       // 使用本地处理作为回退
+      const currentUser = getCurrentUser();
       const newFolder: FileItem = {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         name: folderName,
@@ -495,7 +526,8 @@ export default function Home() {
         size: 0,
         lastModified: Date.now(),
         isFolder: true,
-        parentId: currentFolder
+        parentId: currentFolder,
+        userId: currentUser
       };
       setFiles(prevFiles => {
         const updatedFiles = [...prevFiles, newFolder];

@@ -19,7 +19,7 @@ export default function Home() {
   const [selectedSection, setSelectedSection] = useState('all');
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [usedStorage, setUsedStorage] = useState(1024 * 1024 * 100); // 100MB
-  const [totalStorage] = useState(1024 * 1024 * 1024); // 1GB
+  const [totalStorage] = useState(5 * 1024 * 1024 * 1024); // 5GB
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [breadcrumb, setBreadcrumb] = useState<{id: string | null, name: string}[]>([{id: null, name: '主页'}]);
   const [searchQuery, setSearchQuery] = useState('');

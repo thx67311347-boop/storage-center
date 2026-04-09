@@ -21,7 +21,7 @@ export default function Home() {
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedFileForShare, setSelectedFileForShare] = useState<any>(null);
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFilesForShare, setSelectedFilesForShare] = useState<FileItem[]>([]);
   const [usedStorage, setUsedStorage] = useState(1024 * 1024 * 100); // 100MB
   const [totalStorage] = useState(5 * 1024 * 1024 * 1024); // 5GB
@@ -482,19 +482,20 @@ export default function Home() {
 
   // 处理文件选择
   const handleSelectFile = (fileId: string, isCtrlPressed: boolean) => {
-    // 立即响应，使用函数式更新确保获取最新状态
     if (isCtrlPressed) {
       // Ctrl键按下，切换文件选择状态
-      setSelectedFiles(prevSelectedFiles => {
-        if (prevSelectedFiles.includes(fileId)) {
-          return prevSelectedFiles.filter(id => id !== fileId);
+      setSelectedFiles(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(fileId)) {
+          newSet.delete(fileId);
         } else {
-          return [...prevSelectedFiles, fileId];
+          newSet.add(fileId);
         }
+        return newSet;
       });
     } else {
       // 没有按下Ctrl键，替换选择
-      setSelectedFiles([fileId]);
+      setSelectedFiles(new Set([fileId]));
     }
   };
 

@@ -13,7 +13,7 @@ interface FileListProps {
   onFileRestore: (fileId: string) => void;
   onFileShare: (file: FileItem) => void;
   onMultiFileShare: (files: FileItem[]) => void;
-  selectedFiles: string[];
+  selectedFiles: Set<string>;
   onSelectFile: (fileId: string, isCtrlPressed: boolean) => void;
   isTrash: boolean;
 }
@@ -88,15 +88,15 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
     <div className="w-full" suppressHydrationWarning={true}>
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
         {/* 多选操作栏 */}
-        {selectedFiles.length > 0 && (
+        {selectedFiles.size > 0 && (
           <div className="grid grid-cols-12 px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-blue-50 dark:bg-blue-900/20">
             <div className="col-span-9 flex items-center gap-4">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                已选择 {selectedFiles.length} 个文件
+                已选择 {selectedFiles.size} 个文件
               </span>
               <button
                 onClick={() => {
-                  const selectedFilesList = files.filter(file => selectedFiles.includes(file.id));
+                  const selectedFilesList = files.filter(file => selectedFiles.has(file.id));
                   onMultiFileShare(selectedFilesList);
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 text-sm"
@@ -121,27 +121,27 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
         
         <div className="grid grid-cols-12 px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
           <div className="col-span-1 flex items-center">
-            <div className="p-3">
-              <input
-                type="checkbox"
-                checked={selectedFiles.length === files.length && files.length > 0}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    // 全选
-                    files.forEach(file => {
-                      if (!selectedFiles.includes(file.id)) {
-                        onSelectFile(file.id, true);
-                      }
-                    });
-                  } else {
-                    // 全不选
-                    selectedFiles.forEach(fileId => onSelectFile(fileId, true));
-                  }
-                }}
-                className="h-6 w-6 text-blue-600 rounded cursor-pointer transition-all duration-200"
-              />
+              <div className="p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedFiles.size === files.length && files.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      // 全选
+                      files.forEach(file => {
+                        if (!selectedFiles.has(file.id)) {
+                          onSelectFile(file.id, true);
+                        }
+                      });
+                    } else {
+                      // 全不选
+                      selectedFiles.forEach(fileId => onSelectFile(fileId, true));
+                    }
+                  }}
+                  className="h-6 w-6 text-blue-600 rounded cursor-pointer transition-all duration-200"
+                />
+              </div>
             </div>
-          </div>
           <div className="col-span-5">
             <button
               onClick={() => handleSort('name')}
@@ -196,12 +196,12 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
             {sortedFiles.map((file) => (
               <div
                 key={file.id}
-                className={`grid grid-cols-12 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5 ${selectedFiles.includes(file.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                className={`grid grid-cols-12 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5 ${selectedFiles.has(file.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                 onClick={(e) => {
                   const isCtrlPressed = (e as any).ctrlKey || (e as any).metaKey;
                   if (isCtrlPressed) {
                     onSelectFile(file.id, true);
-                  } else if (selectedFiles.length > 0) {
+                  } else if (selectedFiles.size > 0) {
                     // 如果已经有选择的文件，点击其他文件会切换选择
                     onSelectFile(file.id, false);
                   } else {
@@ -220,7 +220,7 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                   >
                     <input
                       type="checkbox"
-                      checked={selectedFiles.includes(file.id)}
+                      checked={selectedFiles.has(file.id)}
                       onChange={(e) => {
                         e.stopPropagation();
                         e.preventDefault();

@@ -672,7 +672,7 @@ export default function Home() {
             {/* 文件列表 */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
               <FileList 
-                files={currentFiles}
+                files={getCurrentFiles()}
                 onFileClick={handleFileClick}
                 onFileDelete={handleFileDelete}
                 onFileDownload={handleFileDownload}

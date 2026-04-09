@@ -6,34 +6,44 @@ interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   file?: any;
+  files?: any[];
 }
 
-export default function ShareModal({ isOpen, onClose, file }: ShareModalProps) {
+export default function ShareModal({ isOpen, onClose, file, files }: ShareModalProps) {
   const [shareLink, setShareLink] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (file) {
-      // 生成分享链接
+    if (files && files.length > 0) {
+      // 多文件分享
+      const fileNames = files.map(f => f.name).join(', ');
+      const link = window.location.origin;
+      setShareLink(link);
+      setMessage(`我分享了${files.length}个文件: ${fileNames}`);
+    } else if (file) {
+      // 单个文件分享
       const link = file.url || window.location.origin + '/file/' + file.id;
       setShareLink(link);
       setMessage(`我分享了一个文件: ${file.name}`);
     }
-  }, [file]);
+  }, [file, files]);
 
   const handleShare = (platform: string) => {
     let shareUrl = '';
+    const isMultiFile = files && files.length > 0;
     
     switch (platform) {
       case 'wechat':
         // 微信分享需要特殊处理，这里使用二维码或链接
-        shareUrl = `https://wx.qq.com/share?url=${encodeURIComponent(shareLink)}&title=${encodeURIComponent(file?.name || '分享文件')}`;
+        const title = isMultiFile ? `分享了${files.length}个文件` : (file?.name || '分享文件');
+        shareUrl = `https://wx.qq.com/share?url=${encodeURIComponent(shareLink)}&title=${encodeURIComponent(title)}`;
         break;
       case 'whatsapp':
         shareUrl = `https://wa.me/?text=${encodeURIComponent(`${message} ${shareLink}`)}`;
         break;
       case 'email':
-        shareUrl = `mailto:?subject=${encodeURIComponent('分享文件')}&body=${encodeURIComponent(`${message} ${shareLink}`)}`;
+        const emailSubject = isMultiFile ? `分享了${files.length}个文件` : '分享文件';
+        shareUrl = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(`${message} ${shareLink}`)}`;
         break;
       default:
         break;
@@ -73,7 +83,37 @@ export default function ShareModal({ isOpen, onClose, file }: ShareModalProps) {
             </button>
           </div>
 
-          {file && (
+          {files && files.length > 0 ? (
+            <div className="mb-6">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">{files.length}个文件</h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {files.map(f => f.name).join(', ')}
+                  </p>
+                </div>
+              </div>
+              <div className="mb-4">
+                <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">文件列表</h5>
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                  {files.map((f, index) => (
+                    <div key={index} className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                      <span className="text-sm text-gray-900 dark:text-white">{f.name}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {f.size ? `${(f.size / 1024).toFixed(2)} KB` : '未知大小'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : file ? (
             <div className="mb-6">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
@@ -157,7 +197,7 @@ export default function ShareModal({ isOpen, onClose, file }: ShareModalProps) {
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="mt-6 flex justify-end">
             <button

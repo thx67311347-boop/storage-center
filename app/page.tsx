@@ -21,6 +21,8 @@ export default function Home() {
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedFileForShare, setSelectedFileForShare] = useState<any>(null);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [selectedFilesForShare, setSelectedFilesForShare] = useState<FileItem[]>([]);
   const [usedStorage, setUsedStorage] = useState(1024 * 1024 * 100); // 100MB
   const [totalStorage] = useState(5 * 1024 * 1024 * 1024); // 5GB
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
@@ -472,6 +474,29 @@ export default function Home() {
     setIsShareModalOpen(true);
   };
 
+  // 处理多文件分享
+  const handleMultiFileShare = (files: FileItem[]) => {
+    setSelectedFilesForShare(files);
+    setIsShareModalOpen(true);
+  };
+
+  // 处理文件选择
+  const handleSelectFile = (fileId: string, isCtrlPressed: boolean) => {
+    setSelectedFiles(prev => {
+      if (isCtrlPressed) {
+        // Ctrl键按下，切换文件选择状态
+        if (prev.includes(fileId)) {
+          return prev.filter(id => id !== fileId);
+        } else {
+          return [...prev, fileId];
+        }
+      } else {
+        // 没有按下Ctrl键，替换选择
+        return [fileId];
+      }
+    });
+  };
+
   useEffect(() => {
     // 快捷键监听
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -654,6 +679,9 @@ export default function Home() {
                 onFileRename={handleFileRename}
                 onFileRestore={handleFileRestore}
                 onFileShare={handleFileShare}
+                onMultiFileShare={handleMultiFileShare}
+                selectedFiles={selectedFiles}
+                onSelectFile={handleSelectFile}
                 isTrash={selectedSection === 'trash'}
               />
             </div>
@@ -672,6 +700,7 @@ export default function Home() {
         isOpen={isShareModalOpen} 
         onClose={() => setIsShareModalOpen(false)} 
         file={selectedFileForShare} 
+        files={selectedFilesForShare} 
       />
     </div>
   );

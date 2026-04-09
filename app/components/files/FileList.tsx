@@ -12,10 +12,13 @@ interface FileListProps {
   onFileRename: (fileId: string, newName: string) => void;
   onFileRestore: (fileId: string) => void;
   onFileShare: (file: FileItem) => void;
+  onMultiFileShare: (files: FileItem[]) => void;
+  selectedFiles: string[];
+  onSelectFile: (fileId: string, isCtrlPressed: boolean) => void;
   isTrash: boolean;
 }
 
-export default function FileList({ files, onFileClick, onFileDelete, onFileDownload, onFileRename, onFileRestore, onFileShare, isTrash }: FileListProps) {
+export default function FileList({ files, onFileClick, onFileDelete, onFileDownload, onFileRename, onFileRestore, onFileShare, onMultiFileShare, selectedFiles, onSelectFile, isTrash }: FileListProps) {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
@@ -84,8 +87,62 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
   return (
     <div className="w-full" suppressHydrationWarning={true}>
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+        {/* 多选操作栏 */}
+        {selectedFiles.length > 0 && (
+          <div className="grid grid-cols-12 px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-blue-50 dark:bg-blue-900/20">
+            <div className="col-span-9 flex items-center gap-4">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                已选择 {selectedFiles.length} 个文件
+              </span>
+              <button
+                onClick={() => {
+                  const selectedFilesList = files.filter(file => selectedFiles.includes(file.id));
+                  onMultiFileShare(selectedFilesList);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 text-sm"
+              >
+                <Icon name="share" size={14} color="white" />
+                <span>分享所选文件</span>
+              </button>
+            </div>
+            <div className="col-span-3 text-right">
+              <button
+                onClick={() => {
+                  // 清除所有选择
+                  selectedFiles.forEach(fileId => onSelectFile(fileId, true));
+                }}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                清除选择
+              </button>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-12 px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-          <div className="col-span-6">
+          <div className="col-span-1">
+            {selectedFiles.length > 0 && (
+              <input
+                type="checkbox"
+                checked={selectedFiles.length === files.length}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    // 全选
+                    files.forEach(file => {
+                      if (!selectedFiles.includes(file.id)) {
+                        onSelectFile(file.id, true);
+                      }
+                    });
+                  } else {
+                    // 全不选
+                    selectedFiles.forEach(fileId => onSelectFile(fileId, true));
+                  }
+                }}
+                className="h-4 w-4 text-blue-600 rounded"
+              />
+            )}
+          </div>
+          <div className="col-span-5">
             <button
               onClick={() => handleSort('name')}
               className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
@@ -139,10 +196,31 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
             {sortedFiles.map((file) => (
               <div
                 key={file.id}
-                className="grid grid-cols-12 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5"
-                onClick={() => onFileClick(file)}
+                className={`grid grid-cols-12 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5 ${selectedFiles.includes(file.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                onClick={(e) => {
+                  const isCtrlPressed = (e as any).ctrlKey || (e as any).metaKey;
+                  if (isCtrlPressed) {
+                    onSelectFile(file.id, true);
+                  } else if (selectedFiles.length > 0) {
+                    // 如果已经有选择的文件，点击其他文件会切换选择
+                    onSelectFile(file.id, false);
+                  } else {
+                    onFileClick(file);
+                  }
+                }}
               >
-                <div className="col-span-6 flex items-center gap-4">
+                <div className="col-span-1 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.includes(file.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onSelectFile(file.id, true);
+                    }}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                </div>
+                <div className="col-span-5 flex items-center gap-4">
                   <div className="text-2xl">
                     <Icon 
                       name={

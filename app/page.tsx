@@ -9,6 +9,7 @@ import FileList from './components/files/FileList';
 import FilePreview from './components/FilePreview';
 import CreateFolderModal from './components/modals/CreateFolderModal';
 import ShareModal from './components/files/ShareModal';
+import UserManualModal from './components/modals/UserManualModal';
 import Icon from './components/ui/Icon';
 import { FileItem } from './types';
 import { supabase } from '../lib/supabase';
@@ -20,6 +21,7 @@ export default function Home() {
   const [selectedSection, setSelectedSection] = useState('all');
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isUserManualModalOpen, setIsUserManualModalOpen] = useState(false);
   const [selectedFileForShare, setSelectedFileForShare] = useState<any>(null);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFilesForShare, setSelectedFilesForShare] = useState<FileItem[]>([]);
@@ -676,7 +678,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 flex flex-col">
-      <Navbar onSearch={handleSearch} onClearSearch={handleClearSearch} searchQuery={searchQuery} onLogout={handleLogout} />
+      <Navbar 
+        onSearch={handleSearch} 
+        onClearSearch={handleClearSearch} 
+        searchQuery={searchQuery} 
+        onLogout={handleLogout}
+        onOpenUserManual={() => setIsUserManualModalOpen(true)}
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
           selectedSection={selectedSection} 
@@ -767,6 +775,10 @@ export default function Home() {
         onClose={() => setIsShareModalOpen(false)} 
         file={selectedFileForShare} 
         files={selectedFilesForShare} 
+      />
+      <UserManualModal 
+        isOpen={isUserManualModalOpen} 
+        onClose={() => setIsUserManualModalOpen(false)} 
       />
     </div>
   );

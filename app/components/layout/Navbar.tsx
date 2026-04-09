@@ -8,10 +8,12 @@ interface NavbarProps {
   onClearSearch: () => void;
   searchQuery: string;
   onLogout: () => void;
+  onOpenUserManual?: () => void;
 }
 
-export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout }: NavbarProps) {
+export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout, onOpenUserManual }: NavbarProps) {
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [showHelpMenu, setShowHelpMenu] = useState(false);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +73,43 @@ export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout 
             <Icon name="bell" size={20} className="text-gray-600 dark:text-gray-400" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
+          
+          {/* 帮助中心菜单 */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowHelpMenu(!showHelpMenu)}
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 flex items-center gap-2"
+            >
+              <Icon name="help" size={20} className="text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:inline">帮助中心</span>
+            </button>
+            
+            {/* 帮助中心下拉菜单 */}
+            {showHelpMenu && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      if (onOpenUserManual) {
+                        onOpenUserManual();
+                      }
+                      setShowHelpMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-left transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <Icon name="file" size={16} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">用户说明书</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">查看完整使用指南</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium shadow-md">
               U

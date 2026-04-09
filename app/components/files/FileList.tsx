@@ -121,24 +121,30 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
         
         <div className="grid grid-cols-12 px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
           <div className="col-span-1 flex items-center">
-              <div className="p-3">
+              <div 
+                className="p-4 cursor-pointer flex items-center justify-center min-w-[48px] min-h-[48px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (selectedFiles.size === files.length && files.length > 0) {
+                    // 全不选
+                    selectedFiles.forEach(fileId => onSelectFile(fileId, true));
+                  } else {
+                    // 全选
+                    files.forEach(file => {
+                      if (!selectedFiles.has(file.id)) {
+                        onSelectFile(file.id, true);
+                      }
+                    });
+                  }
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={selectedFiles.size === files.length && files.length > 0}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      // 全选
-                      files.forEach(file => {
-                        if (!selectedFiles.has(file.id)) {
-                          onSelectFile(file.id, true);
-                        }
-                      });
-                    } else {
-                      // 全不选
-                      selectedFiles.forEach(fileId => onSelectFile(fileId, true));
-                    }
+                    e.stopPropagation();
                   }}
-                  className="h-6 w-6 text-blue-600 rounded cursor-pointer transition-all duration-200"
+                  className="h-8 w-8 text-blue-600 rounded cursor-pointer transition-all duration-200"
                 />
               </div>
             </div>
@@ -211,10 +217,9 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
               >
                 <div className="col-span-1 flex items-center">
                   <div 
-                    className="p-3 cursor-pointer"
+                    className="p-4 cursor-pointer flex items-center justify-center min-w-[48px] min-h-[48px]"
                     onClick={(e) => {
                       e.stopPropagation();
-                      e.preventDefault();
                       onSelectFile(file.id, true);
                     }}
                   >
@@ -223,10 +228,9 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                       checked={selectedFiles.has(file.id)}
                       onChange={(e) => {
                         e.stopPropagation();
-                        e.preventDefault();
                         onSelectFile(file.id, true);
                       }}
-                      className="h-6 w-6 text-blue-600 rounded cursor-pointer transition-all duration-200"
+                      className="h-8 w-8 text-blue-600 rounded cursor-pointer transition-all duration-200"
                     />
                   </div>
                 </div>

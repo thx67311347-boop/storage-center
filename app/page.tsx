@@ -240,6 +240,21 @@ export default function Home() {
     setSelectedFile(null);
   };
 
+  const handleDownloadFile = () => {
+    if (!selectedFile) return;
+    
+    if (selectedFile.url && selectedFile.url !== '#' && selectedFile.url !== '') {
+      const link = document.createElement('a');
+      link.href = selectedFile.url;
+      link.download = selectedFile.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert('此文件无法下载，请重新上传文件后再试。');
+    }
+  };
+
   const handleFileDelete = async (fileId: string, isFromTrash: boolean = false) => {
     const fileToDelete = files.find(file => file.id === fileId);
     if (fileToDelete && !fileToDelete.isFolder) {
@@ -760,7 +775,11 @@ export default function Home() {
         </main>
       </div>
       {selectedFile && (
-        <FilePreview file={selectedFile} onClose={() => setSelectedFile(null)} />
+        <FilePreview 
+          file={selectedFile} 
+          onClose={() => setSelectedFile(null)}
+          onDownload={handleDownloadFile}
+        />
       )}
       <CreateFolderModal 
         isOpen={isCreateFolderModalOpen} 

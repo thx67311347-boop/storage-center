@@ -15,9 +15,11 @@ interface DashboardStats {
 
 interface RecentActivity {
   id: string;
+  type: string;
   action: string;
   user: string;
   timestamp: string;
+  details?: string;
 }
 
 export default function AdminDashboard() {

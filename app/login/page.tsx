@@ -24,7 +24,7 @@ export default function LoginPage() {
       console.log('Lowercase email:', lowerCaseEmail);
       
       // 硬编码的用户凭证检查（确保在任何环境下都能登录）
-      const hardcodedCredentials = {
+      const hardcodedCredentials: Record<string, { password: string; role: string }> = {
         'admin@example.com': {
           password: 'admin123',
           role: 'admin'

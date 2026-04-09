@@ -168,7 +168,7 @@ export default function Home() {
         const { data: urlData, error: urlError } = await supabase
           .storage
           .from('files')
-          .getPublicUrl(fileName);
+          .getPublicUrl(fileName) as { data: { publicUrl: string }; error: any };
         
         if (urlError) {
           console.error('Error getting file URL:', urlError);
@@ -176,7 +176,7 @@ export default function Home() {
         }
         
         // 将文件信息保存到数据库
-        const { data: dbData, error: dbError } = await supabase
+        const { data: dbData, error: dbError } = await (supabase
           .from('files')
           .insert({
             name: file.name,
@@ -186,7 +186,7 @@ export default function Home() {
             url: urlData.publicUrl,
             parentId: currentFolder,
             isFolder: false
-          })
+          }) as any)
           .select('*')
           .single();
         
@@ -261,8 +261,8 @@ export default function Home() {
         }
       } else {
         // 在主页中，标记为已删除
-        const { error: dbError } = await supabase
-          .from('files')
+        const { error: dbError } = await (supabase
+          .from('files') as any)
           .update({ isDeleted: true, deletedAt: Date.now() })
           .eq('id', fileId);
         
@@ -296,8 +296,8 @@ export default function Home() {
   const handleFileRename = async (fileId: string, newName: string) => {
     try {
       // 更新数据库中的文件名称
-      const { error: dbError } = await supabase
-        .from('files')
+      const { error: dbError } = await (supabase
+        .from('files') as any)
         .update({ name: newName, lastModified: Date.now() })
         .eq('id', fileId);
       
@@ -328,8 +328,8 @@ export default function Home() {
     
     try {
       // 更新数据库中的文件状态，标记为未删除
-      const { error: dbError } = await supabase
-        .from('files')
+      const { error: dbError } = await (supabase
+        .from('files') as any)
         .update({ isDeleted: false, deletedAt: null })
         .eq('id', fileId);
       
@@ -378,7 +378,7 @@ export default function Home() {
   const handleCreateFolder = async (folderName: string) => {
     try {
       // 将文件夹信息保存到数据库
-      const { data: dbData, error: dbError } = await supabase
+      const { data: dbData, error: dbError } = await (supabase
         .from('files')
         .insert({
           name: folderName,
@@ -387,7 +387,7 @@ export default function Home() {
           lastModified: Date.now(),
           parentId: currentFolder,
           isFolder: true
-        })
+        }) as any)
         .select('*')
         .single();
       

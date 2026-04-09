@@ -121,26 +121,24 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
         
         <div className="grid grid-cols-12 px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
           <div className="col-span-1">
-            {selectedFiles.length > 0 && (
-              <input
-                type="checkbox"
-                checked={selectedFiles.length === files.length}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    // 全选
-                    files.forEach(file => {
-                      if (!selectedFiles.includes(file.id)) {
-                        onSelectFile(file.id, true);
-                      }
-                    });
-                  } else {
-                    // 全不选
-                    selectedFiles.forEach(fileId => onSelectFile(fileId, true));
-                  }
-                }}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-            )}
+            <input
+              type="checkbox"
+              checked={selectedFiles.length === files.length && files.length > 0}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  // 全选
+                  files.forEach(file => {
+                    if (!selectedFiles.includes(file.id)) {
+                      onSelectFile(file.id, true);
+                    }
+                  });
+                } else {
+                  // 全不选
+                  selectedFiles.forEach(fileId => onSelectFile(fileId, true));
+                }
+              }}
+              className="h-4 w-4 text-blue-600 rounded"
+            />
           </div>
           <div className="col-span-5">
             <button

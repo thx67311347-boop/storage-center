@@ -208,15 +208,23 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                 }}
               >
                 <div className="col-span-1 flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedFiles.includes(file.id)}
-                    onChange={(e) => {
+                  <div 
+                    className="p-2 cursor-pointer"
+                    onClick={(e) => {
                       e.stopPropagation();
                       onSelectFile(file.id, true);
                     }}
-                    className="h-4 w-4 text-blue-600 rounded"
-                  />
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedFiles.includes(file.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onSelectFile(file.id, true);
+                      }}
+                      className="h-4 w-4 text-blue-600 rounded cursor-pointer"
+                    />
+                  </div>
                 </div>
                 <div className="col-span-5 flex items-center gap-4">
                   <div className="text-2xl">

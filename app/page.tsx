@@ -8,6 +8,7 @@ import FileUploader from './components/FileUploader';
 import FileList from './components/files/FileList';
 import FilePreview from './components/FilePreview';
 import CreateFolderModal from './components/modals/CreateFolderModal';
+import ShareModal from './components/files/ShareModal';
 import Icon from './components/ui/Icon';
 import { FileItem } from './types';
 import { supabase } from '../lib/supabase';
@@ -18,6 +19,8 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [selectedSection, setSelectedSection] = useState('all');
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [selectedFileForShare, setSelectedFileForShare] = useState<any>(null);
   const [usedStorage, setUsedStorage] = useState(1024 * 1024 * 100); // 100MB
   const [totalStorage] = useState(5 * 1024 * 1024 * 1024); // 5GB
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
@@ -463,6 +466,28 @@ export default function Home() {
     alert('设置页面功能开发中');
   };
 
+  // 处理文件分享
+  const handleFileShare = (file: FileItem) => {
+    setSelectedFileForShare(file);
+    setIsShareModalOpen(true);
+  };
+
+  useEffect(() => {
+    // 快捷键监听
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+S 触发分享功能
+      if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        if (selectedFile) {
+          handleFileShare(selectedFile);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFile]);
+
   const getCurrentFiles = () => {
     let filteredFiles = files;
     
@@ -622,12 +647,13 @@ export default function Home() {
             {/* 文件列表 */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
               <FileList 
-                files={isSearching ? getSearchResults() : getCurrentFiles()} 
+                files={currentFiles}
                 onFileClick={handleFileClick}
                 onFileDelete={handleFileDelete}
                 onFileDownload={handleFileDownload}
                 onFileRename={handleFileRename}
                 onFileRestore={handleFileRestore}
+                onFileShare={handleFileShare}
                 isTrash={selectedSection === 'trash'}
               />
             </div>
@@ -635,12 +661,17 @@ export default function Home() {
         </main>
       </div>
       {selectedFile && (
-        <FilePreview file={selectedFile} onClose={handleClosePreview} />
+        <FilePreview file={selectedFile} onClose={() => setSelectedFile(null)} />
       )}
       <CreateFolderModal 
         isOpen={isCreateFolderModalOpen} 
-        onClose={() => setIsCreateFolderModalOpen(false)}
-        onCreate={handleCreateFolder}
+        onClose={() => setIsCreateFolderModalOpen(false)} 
+        onCreate={handleCreateFolder} 
+      />
+      <ShareModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        file={selectedFileForShare} 
       />
     </div>
   );

@@ -11,10 +11,11 @@ interface FileListProps {
   onFileDownload: (file: FileItem) => void;
   onFileRename: (fileId: string, newName: string) => void;
   onFileRestore: (fileId: string) => void;
+  onFileShare: (file: FileItem) => void;
   isTrash: boolean;
 }
 
-export default function FileList({ files, onFileClick, onFileDelete, onFileDownload, onFileRename, onFileRestore, isTrash }: FileListProps) {
+export default function FileList({ files, onFileClick, onFileDelete, onFileDownload, onFileRename, onFileRestore, onFileShare, isTrash }: FileListProps) {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
@@ -206,6 +207,24 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                   {new Date(file?.lastModified || 0).toLocaleString()}
                 </div>
                 <div className="col-span-1 flex items-center justify-end gap-3">
+                  {!isTrash && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (file) {
+                          onFileShare(file);
+                        }
+                      }}
+                      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+                      aria-label="分享文件"
+                    >
+                      <Icon 
+                        name="share" 
+                        size={18} 
+                        className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                      />
+                    </button>
+                  )}
                   {isTrash ? (
                     <button
                       onClick={(e) => {

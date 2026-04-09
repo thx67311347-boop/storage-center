@@ -21,12 +21,39 @@ export default function LoginPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // 检查是否是管理员登录
-      const userCredentials = JSON.parse(localStorage.getItem('userCredentials') || '{}');
+      let userCredentialsStr = localStorage.getItem('userCredentials');
+      console.log('userCredentialsStr:', userCredentialsStr);
+      
+      // 如果用户凭证不存在，自动初始化
+      if (!userCredentialsStr) {
+        console.log('No userCredentials found, initializing...');
+        const defaultCredentials = {
+          'admin@example.com': {
+            password: btoa('admin123'),
+            role: 'admin'
+          },
+          'user@example.com': {
+            password: btoa('user123'),
+            role: 'user'
+          }
+        };
+        localStorage.setItem('userCredentials', JSON.stringify(defaultCredentials));
+        userCredentialsStr = localStorage.getItem('userCredentials');
+        console.log('User credentials initialized:', userCredentialsStr);
+      }
+
+      const userCredentials = JSON.parse(userCredentialsStr || '{}');
+      console.log('userCredentials:', userCredentials);
+      
       const userData = userCredentials[email];
+      console.log('userData:', userData);
 
       if (userData) {
         // 验证密码（使用Base64解码，实际应使用更安全的方式）
         const decodedPassword = atob(userData.password);
+        console.log('Decoded password:', decodedPassword);
+        console.log('Input password:', password);
+        
         if (decodedPassword === password) {
           // 登录成功
           localStorage.setItem('isLoggedIn', 'true');
@@ -46,7 +73,13 @@ export default function LoginPage() {
             router.push('/');
           }
           return;
+        } else {
+          setError('密码错误');
+          console.log('Password mismatch');
         }
+      } else {
+        setError('邮箱不存在');
+        console.log('Email not found:', email);
       }
 
       // 验证用户输入
@@ -54,6 +87,7 @@ export default function LoginPage() {
       setError('邮箱或密码错误');
       console.log('Login failed:', { email });
     } catch (err) {
+      console.error('Login error:', err);
       setError('登录失败，请稍后重试');
     } finally {
       setIsLoading(false);
@@ -62,9 +96,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900">
-      <div className="w-full max-w-md mx-4 p-6 md:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-lg">
+      <div className="w-full max-w-md mx-4 p-6 md:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-600 rounded-full">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-gradient-to-br from-blue-600 to-blue-500 rounded-full shadow-lg">
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               width="32" 
@@ -88,7 +122,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               邮箱
             </label>
             <div className="relative">
@@ -97,7 +131,7 @@ export default function LoginPage() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-base"
+                className="w-full px-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-base transition-all duration-300"
                 placeholder="请输入邮箱"
                 required
                 autoCapitalize="none"
@@ -107,7 +141,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               密码
             </label>
             <div className="relative">
@@ -116,7 +150,7 @@ export default function LoginPage() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-base"
+                className="w-full px-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-base transition-all duration-300"
                 placeholder="请输入密码"
                 required
                 autoComplete="current-password"
@@ -124,7 +158,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 aria-label={isPasswordVisible ? '隐藏密码' : '显示密码'}
               >
                 <svg 
@@ -157,7 +191,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg animate-fade-in">
+            <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg animate-fade-in border border-red-200 dark:border-red-800">
               <div className="flex items-center">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -169,7 +203,7 @@ export default function LoginPage() {
                   strokeWidth="2" 
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
-                  className="mr-2"
+                  className="mr-3"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
@@ -183,7 +217,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-base font-medium"
+            className="w-full px-6 py-3.5 bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-base font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
           >
             {isLoading ? (
               <>
@@ -214,7 +248,11 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 text-center">
-          <div className="bg-gray-200 dark:bg-gray-700 h-px w-full mb-6"></div>
+          <div className="bg-gray-200 dark:bg-gray-700 h-px w-full mb-6 relative">
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 px-4 text-sm text-gray-500 dark:text-gray-400">
+              或
+            </div>
+          </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             请输入您的账号和密码登录
           </p>

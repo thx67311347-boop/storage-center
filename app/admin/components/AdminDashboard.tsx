@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 
+// 在组件外部生成随机值，避免在渲染时调用不纯函数
+const generateRandomFilesCount = () => Math.floor(Math.random() * 20) + 5;
+const initialFilesCount = generateRandomFilesCount();
+
 interface DashboardStats {
   totalUsers: number;
   totalFiles: number;
@@ -11,9 +15,8 @@ interface DashboardStats {
 
 interface RecentActivity {
   id: string;
-  type: 'upload' | 'download' | 'delete' | 'login';
+  action: string;
   user: string;
-  details: string;
   timestamp: string;
 }
 
@@ -25,6 +28,8 @@ export default function AdminDashboard() {
     activeUsers: 0,
   });
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  // 使用在组件外部生成的随机值
+  const newFilesCount = initialFilesCount;
 
   useEffect(() => {
     // 加载统计数据
@@ -32,8 +37,8 @@ export default function AdminDashboard() {
       const users = JSON.parse(localStorage.getItem('adminUsers') || '[]');
       const files = JSON.parse(localStorage.getItem('adminFiles') || '[]');
 
-      const totalStorage = files.reduce((acc: number, file: any) => acc + (file.size || 0), 0);
-      const activeUsers = users.filter((u: any) => u.status === 'active').length;
+      const totalStorage = files.reduce((acc: number, file: { size?: number }) => acc + (file.size || 0), 0);
+      const activeUsers = users.filter((u: { status: string }) => u.status === 'active').length;
 
       setStats({
         totalUsers: users.length,
@@ -169,7 +174,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            本月新增 {Math.floor(Math.random() * 20) + 5} 个文件
+            本月新增 {newFilesCount} 个文件
           </div>
         </div>
 

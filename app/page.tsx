@@ -8,6 +8,7 @@ import FileUploader from './components/FileUploader';
 import FileList from './components/files/FileList';
 import FilePreview from './components/FilePreview';
 import CreateFolderModal from './components/modals/CreateFolderModal';
+import Icon from './components/ui/Icon';
 import { FileItem } from './types';
 import { supabase } from '../lib/supabase';
 
@@ -18,12 +19,11 @@ export default function Home() {
   const [selectedSection, setSelectedSection] = useState('all');
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [usedStorage, setUsedStorage] = useState(1024 * 1024 * 100); // 100MB
-  const [totalStorage, setTotalStorage] = useState(1024 * 1024 * 1024); // 1GB
+  const [totalStorage] = useState(1024 * 1024 * 1024); // 1GB
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [breadcrumb, setBreadcrumb] = useState<{id: string | null, name: string}[]>([{id: null, name: '主页'}]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // 保存文件数据到 localStorage
   const saveFilesToStorage = (files: FileItem[]) => {
@@ -42,7 +42,6 @@ export default function Home() {
       if (!isUserLoggedIn) {
         router.push('/login');
       } else {
-        setIsLoggedIn(true);
         loadFilesFromStorage();
       }
     };
@@ -155,7 +154,7 @@ export default function Home() {
         const fileName = `${Date.now()}_${file.name}`;
         
         // 上传文件到 Supabase 存储
-        const { data: storageData, error: storageError } = await supabase
+        const { error: storageError } = await supabase
           .storage
           .from('files')
           .upload(fileName, file);
@@ -561,7 +560,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 flex flex-col">
       <Navbar onSearch={handleSearch} onClearSearch={handleClearSearch} searchQuery={searchQuery} onLogout={handleLogout} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
@@ -579,94 +578,60 @@ export default function Home() {
           onDrop={handleDrop}
         >
           {isDragging && (
-            <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-dashed border-blue-500 flex items-center justify-center z-10">
-              <div className="text-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-blue-600 mx-auto mb-4"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                <p className="text-blue-600 font-medium">拖拽文件到此处上传</p>
+            <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-dashed border-blue-500 flex items-center justify-center z-10 rounded-xl">
+              <div className="text-center bg-white dark:bg-gray-900 p-8 rounded-xl shadow-lg">
+                <Icon name="upload" size={48} className="text-blue-600 mx-auto mb-4" />
+                <p className="text-blue-600 font-medium text-lg">拖拽文件到此处上传</p>
               </div>
             </div>
           )}
-          <div className="mb-4 md:mb-6">
-            <div className="flex items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
-              {breadcrumb.map((item, index) => (
-                <React.Fragment key={item.id || 'root'}>
-                  <button
-                    onClick={() => handleBreadcrumbClick(index)}
-                    className={`text-sm ${index === breadcrumb.length - 1 ? 'font-medium text-gray-900 dark:text-white' : 'text-blue-600 dark:text-blue-400 hover:underline'}`}
-                  >
-                    {item.name}
-                  </button>
-                  {index < breadcrumb.length - 1 && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-gray-400 flex-shrink-0"
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* 页面标题和面包屑 */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                {breadcrumb.map((item, index) => (
+                  <React.Fragment key={item.id || 'root'}>
+                    <button
+                      onClick={() => handleBreadcrumbClick(index)}
+                      className={`text-sm ${index === breadcrumb.length - 1 ? 'font-semibold text-gray-900 dark:text-white' : 'text-blue-600 dark:text-blue-400 hover:underline'}`}
                     >
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{breadcrumb[breadcrumb.length - 1].name}</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsCreateFolderModalOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 md:px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm md:text-base"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                      {item.name}
+                    </button>
+                    {index < breadcrumb.length - 1 && (
+                      <Icon name="sort" size={16} className="text-gray-400 flex-shrink-0 transform rotate-90" />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{breadcrumb[breadcrumb.length - 1].name}</h2>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsCreateFolderModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-sm hover:shadow text-sm md:text-base"
                   >
-                    <path d="M12 5v14" />
-                    <path d="M5 12h14" />
-                  </svg>
-                  <span className="md:inline hidden">新建</span>
-                  <span className="hidden md:inline">新建文件夹</span>
-                </button>
-                <FileUploader onFilesUploaded={handleFilesUploaded} />
+                    <Icon name="plus" size={18} color="white" />
+                    <span className="md:inline hidden">新建</span>
+                    <span className="hidden md:inline">新建文件夹</span>
+                  </button>
+                  <FileUploader onFilesUploaded={handleFilesUploaded} />
+                </div>
               </div>
             </div>
+            
+            {/* 文件列表 */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <FileList 
+                files={isSearching ? getSearchResults() : getCurrentFiles()} 
+                onFileClick={handleFileClick}
+                onFileDelete={handleFileDelete}
+                onFileDownload={handleFileDownload}
+                onFileRename={handleFileRename}
+                onFileRestore={handleFileRestore}
+                isTrash={selectedSection === 'trash'}
+              />
+            </div>
           </div>
-          <FileList 
-            files={isSearching ? getSearchResults() : getCurrentFiles()} 
-            onFileClick={handleFileClick}
-            onFileDelete={handleFileDelete}
-            onFileDownload={handleFileDownload}
-            onFileRename={handleFileRename}
-            onFileRestore={handleFileRestore}
-            isTrash={selectedSection === 'trash'}
-          />
         </main>
       </div>
       {selectedFile && (

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { FileItem } from '../../types';
+import Icon from '../ui/Icon';
 
 interface FileListProps {
   files: FileItem[];
@@ -81,74 +82,50 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
 
   return (
     <div className="w-full" suppressHydrationWarning={true}>
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-        <div className="grid grid-cols-12 px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+        <div className="grid grid-cols-12 px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
           <div className="col-span-6">
             <button
               onClick={() => handleSort('name')}
-              className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
             >
               <span>名称</span>
               {sortBy === 'name' && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {sortOrder === 'asc' ? <path d="m18 15-6-6-6 6" /> : <path d="m6 9 6 6 6-6" />}
-                </svg>
+                <Icon 
+                  name="sort" 
+                  size={16} 
+                  className={`transition-transform duration-300 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`}
+                />
               )}
             </button>
           </div>
           <div className="col-span-2">
             <button
               onClick={() => handleSort('size')}
-              className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
             >
               <span>大小</span>
               {sortBy === 'size' && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {sortOrder === 'asc' ? <path d="m18 15-6-6-6 6" /> : <path d="m6 9 6 6 6-6" />}
-                </svg>
+                <Icon 
+                  name="sort" 
+                  size={16} 
+                  className={`transition-transform duration-300 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`}
+                />
               )}
             </button>
           </div>
           <div className="col-span-3">
             <button
               onClick={() => handleSort('date')}
-              className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300"
             >
               <span>修改日期</span>
               {sortBy === 'date' && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {sortOrder === 'asc' ? <path d="m18 15-6-6-6 6" /> : <path d="m6 9 6 6 6-6" />}
-                </svg>
+                <Icon 
+                  name="sort" 
+                  size={16} 
+                  className={`transition-transform duration-300 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`}
+                />
               )}
             </button>
           </div>
@@ -161,67 +138,63 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
             {sortedFiles.map((file) => (
               <div
                 key={file.id}
-                className="grid grid-cols-12 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                className="grid grid-cols-12 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5"
                 onClick={() => onFileClick(file)}
               >
-                <div className="col-span-6 flex items-center gap-3">
+                <div className="col-span-6 flex items-center gap-4">
                   <div className="text-2xl">
-                    {file && (file.type === 'folder' || file.isFolder) ? '📁' :
-                     file && file.type && file.type.startsWith('image/') ? '📷' :
-                     file && file.type && file.type.startsWith('video/') ? '🎬' :
-                     file && file.type && file.type.startsWith('audio/') ? '🎵' :
-                     file && file.type && file.type.includes('pdf') ? '📄' :
-                     file && file.type && (file.type.includes('word') || file.type.includes('document')) ? '📝' :
-                     file && file.type && (file.type.includes('excel') || file.type.includes('sheet')) ? '📊' :
-                     file && file.type && (file.type.includes('zip') || file.type.includes('compressed')) ? '📦' :
-                     '📄'}
+                    <Icon 
+                      name={
+                        file && (file.type === 'folder' || file.isFolder) ? 'folder' :
+                        file && file.type && file.type.startsWith('image/') ? 'image' :
+                        file && file.type && file.type.startsWith('video/') ? 'video' :
+                        file && file.type && file.type.startsWith('audio/') ? 'audio' :
+                        file && file.type && file.type.includes('pdf') ? 'pdf' :
+                        file && file.type && (file.type.includes('word') || file.type.includes('document')) ? 'document' :
+                        file && file.type && (file.type.includes('excel') || file.type.includes('sheet')) ? 'sheet' :
+                        file && file.type && (file.type.includes('zip') || file.type.includes('compressed')) ? 'zip' :
+                        'file'
+                      } 
+                      size={24} 
+                      className="text-gray-600 dark:text-gray-400"
+                    />
                   </div>
                   {renamingFileId === file.id ? (
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-3 flex-1">
                       <input
                         type="text"
                         value={renameInputValue}
                         onChange={(e) => setRenameInputValue(e.target.value)}
                         onKeyDown={(e) => handleRenameKeyDown(e, file.id)}
-                        className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                         autoFocus
                       />
                       <button
                         onClick={() => handleRenameConfirm(file.id, renameInputValue)}
-                        className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-sm"
                       >
                         确认
                       </button>
                       <button
                         onClick={handleRenameCancel}
-                        className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300 shadow-sm"
                       >
                         取消
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-gray-900 dark:text-white flex-1">{file.name}</span>
+                    <div className="flex items-center gap-3 flex-1">
+                      <span className="text-gray-900 dark:text-white font-medium flex-1">{file.name}</span>
                       <button
                         onClick={(e) => handleRenameStart(e, file)}
-                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
                         aria-label="重命名"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-gray-600 dark:text-gray-400"
-                        >
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
+                        <Icon 
+                          name="edit" 
+                          size={16} 
+                          className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        />
                       </button>
                     </div>
                   )}
@@ -232,7 +205,7 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                 <div className="col-span-3 flex items-center text-sm text-gray-600 dark:text-gray-400">
                   {new Date(file?.lastModified || 0).toLocaleString()}
                 </div>
-                <div className="col-span-1 flex items-center justify-end gap-2">
+                <div className="col-span-1 flex items-center justify-end gap-3">
                   {isTrash ? (
                     <button
                       onClick={(e) => {
@@ -241,30 +214,14 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                           onFileRestore(file.id);
                         }
                       }}
-                      className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-900/20 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
                       aria-label="恢复文件"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600 dark:text-gray-400"
-                      >
-                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
-                        />
-                        <path d="M21 3v5h-5"
-                        />
-                        <path d="M12 7v12"
-                        />
-                        <path d="m9 15 3 3 3-3"
-                        />
-                      </svg>
+                      <Icon 
+                        name="restore" 
+                        size={18} 
+                        className="text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                      />
                     </button>
                   ) : (
                     <button
@@ -274,25 +231,14 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                           onFileDownload(file);
                         }
                       }}
-                      className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
                       aria-label="下载文件"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600 dark:text-gray-400"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
+                      <Icon 
+                        name="download" 
+                        size={18} 
+                        className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      />
                     </button>
                   )}
                   <button
@@ -302,33 +248,24 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                         onFileDelete(file.id, isTrash);
                       }
                     }}
-                    className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-900/20 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
                     aria-label="删除文件"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-gray-600 dark:text-gray-400 hover:text-red-500"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                    </svg>
+                    <Icon 
+                      name="trash" 
+                      size={18} 
+                      className="text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors"
+                    />
                   </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            <p>暂无文件</p>
+          <div className="p-12 text-center">
+            <div className="text-6xl mb-4">📁</div>
+            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">暂无文件</h3>
+            <p className="text-gray-500 dark:text-gray-400">上传文件或创建文件夹开始使用</p>
           </div>
         )}
       </div>

@@ -19,7 +19,7 @@ export default function AdminUpload() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 允许的文件类型
-  const allowedTypes = [
+  const allowedTypes = React.useMemo(() => [
     'image/*',
     'application/pdf',
     'application/msword',
@@ -28,72 +28,21 @@ export default function AdminUpload() {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
     'text/markdown',
-  ];
+  ], []);
 
   // 最大文件大小 (50MB)
   const maxFileSize = 50 * 1024 * 1024;
 
-  // 验证文件
-  const validateFile = (file: File): string | null => {
-    if (file.size > maxFileSize) {
-      return `文件大小超过限制 (最大 ${formatFileSize(maxFileSize)})`;
-    }
-
-    const isAllowed = allowedTypes.some((type) => {
-      if (type.endsWith('/*')) {
-        return file.type.startsWith(type.replace('/*', ''));
-      }
-      return file.type === type;
-    });
-
-    if (!isAllowed) {
-      return '不支持的文件类型';
-    }
-
-    return null;
-  };
-
   // 格式化文件大小
-  const formatFileSize = (size: number): string => {
+  const formatFileSize = useCallback((size: number): string => {
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`;
     if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
     return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-  };
-
-  // 处理文件选择
-  const handleFileSelect = (selectedFiles: FileList | null) => {
-    if (!selectedFiles) return;
-
-    const newFiles: UploadFile[] = [];
-
-    Array.from(selectedFiles).forEach((file) => {
-      const error = validateFile(file);
-
-      newFiles.push({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        progress: 0,
-        status: error ? 'error' : 'pending',
-        error: error || undefined,
-      });
-    });
-
-    setFiles((prev) => [...prev, ...newFiles]);
-
-    // 自动开始上传非错误文件
-    newFiles.forEach((uploadFile) => {
-      if (!uploadFile.error) {
-        simulateUpload(uploadFile.id);
-      }
-    });
-  };
+  }, []);
 
   // 模拟上传过程
-  const simulateUpload = (fileId: string) => {
+  const simulateUpload = useCallback((fileId: string) => {
     setFiles((prev) =>
       prev.map((f) => (f.id === fileId ? { ...f, status: 'uploading' } : f))
     );
@@ -135,7 +84,58 @@ export default function AdminUpload() {
         );
       }
     }, 200);
-  };
+  }, []);
+
+  // 验证文件
+  const validateFile = useCallback((file: File): string | null => {
+    if (file.size > maxFileSize) {
+      return `文件大小超过限制 (最大 ${formatFileSize(maxFileSize)})`;
+    }
+
+    const isAllowed = allowedTypes.some((type) => {
+      if (type.endsWith('/*')) {
+        return file.type.startsWith(type.replace('/*', ''));
+      }
+      return file.type === type;
+    });
+
+    if (!isAllowed) {
+      return '不支持的文件类型';
+    }
+
+    return null;
+  }, [allowedTypes, maxFileSize, formatFileSize]);
+
+  // 处理文件选择
+  const handleFileSelect = useCallback((selectedFiles: FileList | null) => {
+    if (!selectedFiles) return;
+
+    const newFiles: UploadFile[] = [];
+
+    Array.from(selectedFiles).forEach((file) => {
+      const error = validateFile(file);
+
+      newFiles.push({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        progress: 0,
+        status: error ? 'error' : 'pending',
+        error: error || undefined,
+      });
+    });
+
+    setFiles((prev) => [...prev, ...newFiles]);
+
+    // 自动开始上传非错误文件
+    newFiles.forEach((uploadFile) => {
+      if (!uploadFile.error) {
+        simulateUpload(uploadFile.id);
+      }
+    });
+  }, [validateFile, simulateUpload]);
 
   // 拖拽处理
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -156,7 +156,7 @@ export default function AdminUpload() {
     e.preventDefault();
     setIsDragging(false);
     handleFileSelect(e.dataTransfer.files);
-  }, []);
+  }, [handleFileSelect]);
 
   // 移除文件
   const removeFile = (fileId: string) => {

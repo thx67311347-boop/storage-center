@@ -94,13 +94,14 @@ export default function UserManagement() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const now = new Date();
     const newUser: User = {
-      id: Date.now().toString(),
+      id: now.getTime().toString(),
       username: formData.username,
       email: formData.email,
       role: formData.role,
       status: 'active',
-      createdAt: new Date().toISOString(),
+      createdAt: now.toISOString(),
       lastLogin: null,
     };
 

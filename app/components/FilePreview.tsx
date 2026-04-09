@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { FileItem } from '../types';
 
 interface FilePreviewProps {
@@ -12,8 +13,14 @@ export default function FilePreview({ file, onClose }: FilePreviewProps) {
   const renderPreview = () => {
     if (file.type.startsWith('image/')) {
       return (
-        <div className="flex justify-center items-center">
-          <img src={file.url} alt={file.name} className="max-w-full max-h-[70vh] object-contain" />
+        <div className="flex justify-center items-center relative w-full h-[70vh]">
+          <Image
+            src={file.url || ''}
+            alt={file.name}
+            fill
+            className="object-contain"
+            priority
+          />
         </div>
       );
     } else if (file.type.startsWith('video/')) {

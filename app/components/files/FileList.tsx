@@ -120,33 +120,27 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
         )}
         
         <div className="grid grid-cols-12 px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-          <div className="col-span-1 flex items-center">
-              <div 
-                className="p-4 cursor-pointer flex items-center justify-center min-w-[48px] min-h-[48px]"
-                onClick={(e) => {
+          <div className="col-span-1 flex items-center justify-start -ml-2">
+              <input
+                type="checkbox"
+                checked={selectedFiles.size === files.length && files.length > 0}
+                onChange={(e) => {
                   e.stopPropagation();
-                  if (selectedFiles.size === files.length && files.length > 0) {
-                    // 全不选
-                    selectedFiles.forEach(fileId => onSelectFile(fileId, true));
-                  } else {
-                    // 全选
+                  if (e.target.checked) {
                     files.forEach(file => {
                       if (!selectedFiles.has(file.id)) {
                         onSelectFile(file.id, true);
                       }
                     });
+                  } else {
+                    selectedFiles.forEach(fileId => onSelectFile(fileId, true));
                   }
                 }}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedFiles.size === files.length && files.length > 0}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                  }}
-                  className="h-8 w-8 text-blue-600 rounded cursor-pointer transition-all duration-200"
-                />
-              </div>
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                className="h-4 w-4 text-blue-600 rounded cursor-pointer"
+              />
             </div>
           <div className="col-span-5">
             <button
@@ -215,24 +209,19 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                   }
                 }}
               >
-                <div className="col-span-1 flex items-center">
-                  <div 
-                    className="p-4 cursor-pointer flex items-center justify-center min-w-[48px] min-h-[48px]"
-                    onClick={(e) => {
+                <div className="col-span-1 flex items-center justify-start -ml-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.has(file.id)}
+                    onChange={(e) => {
                       e.stopPropagation();
                       onSelectFile(file.id, true);
                     }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedFiles.has(file.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        onSelectFile(file.id, true);
-                      }}
-                      className="h-8 w-8 text-blue-600 rounded cursor-pointer transition-all duration-200"
-                    />
-                  </div>
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    className="h-4 w-4 text-blue-600 rounded cursor-pointer"
+                  />
                 </div>
                 <div className="col-span-5 flex items-center gap-4">
                   <div className="text-2xl">

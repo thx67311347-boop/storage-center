@@ -17,11 +17,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 模拟登录请求
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      console.log('Login form submitted:', { email, password });
+      
       // 转换邮箱为小写，确保不区分大小写
       const lowerCaseEmail = email.toLowerCase();
+      console.log('Lowercase email:', lowerCaseEmail);
       
       // 硬编码的用户凭证检查（确保在任何环境下都能登录）
       const hardcodedCredentials = {
@@ -35,26 +35,29 @@ export default function LoginPage() {
         }
       };
 
+      console.log('Hardcoded credentials:', hardcodedCredentials);
+      console.log('Checking hardcoded credentials for:', lowerCaseEmail);
+      console.log('Password match:', hardcodedCredentials[lowerCaseEmail] && hardcodedCredentials[lowerCaseEmail].password === password);
+      
       // 检查硬编码凭证
       if (hardcodedCredentials[lowerCaseEmail] && hardcodedCredentials[lowerCaseEmail].password === password) {
         const userData = hardcodedCredentials[lowerCaseEmail];
+        console.log('Login successful with hardcoded credentials:', userData);
+        
         // 登录成功
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', userData.role);
         localStorage.setItem('currentUser', lowerCaseEmail);
         
-        console.log('Login successful with hardcoded credentials:', {
-          email: lowerCaseEmail,
-          role: userData.role,
-          redirect: userData.role === 'admin' ? '/admin' : '/'
+        console.log('LocalStorage set:', {
+          isLoggedIn: localStorage.getItem('isLoggedIn'),
+          userRole: localStorage.getItem('userRole'),
+          currentUser: localStorage.getItem('currentUser')
         });
         
-        // 根据角色重定向
-        if (userData.role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/');
-        }
+        // 直接重定向，不使用router.push
+        console.log('Redirecting to:', userData.role === 'admin' ? '/admin' : '/');
+        window.location.href = userData.role === 'admin' ? '/admin' : '/';
         return;
       }
 
@@ -104,12 +107,8 @@ export default function LoginPage() {
             redirect: userData.role === 'admin' ? '/admin' : '/'
           });
           
-          // 根据角色重定向
-          if (userData.role === 'admin') {
-            router.push('/admin');
-          } else {
-            router.push('/');
-          }
+          // 直接重定向，不使用router.push
+          window.location.href = userData.role === 'admin' ? '/admin' : '/';
           return;
         } else {
           setError('密码错误');

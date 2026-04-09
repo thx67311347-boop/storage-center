@@ -20,6 +20,9 @@ export default function LoginPage() {
       // 模拟登录请求
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // 转换邮箱为小写，确保不区分大小写
+      const lowerCaseEmail = email.toLowerCase();
+      
       // 硬编码的用户凭证检查（确保在任何环境下都能登录）
       const hardcodedCredentials = {
         'admin@example.com': {
@@ -33,15 +36,15 @@ export default function LoginPage() {
       };
 
       // 检查硬编码凭证
-      if (hardcodedCredentials[email] && hardcodedCredentials[email].password === password) {
-        const userData = hardcodedCredentials[email];
+      if (hardcodedCredentials[lowerCaseEmail] && hardcodedCredentials[lowerCaseEmail].password === password) {
+        const userData = hardcodedCredentials[lowerCaseEmail];
         // 登录成功
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', userData.role);
-        localStorage.setItem('currentUser', email);
+        localStorage.setItem('currentUser', lowerCaseEmail);
         
         console.log('Login successful with hardcoded credentials:', {
-          email,
+          email: lowerCaseEmail,
           role: userData.role,
           redirect: userData.role === 'admin' ? '/admin' : '/'
         });
@@ -80,7 +83,7 @@ export default function LoginPage() {
       const userCredentials = JSON.parse(userCredentialsStr || '{}');
       console.log('userCredentials:', userCredentials);
       
-      const userData = userCredentials[email];
+      const userData = userCredentials[lowerCaseEmail];
       console.log('userData:', userData);
 
       if (userData) {
@@ -93,10 +96,10 @@ export default function LoginPage() {
           // 登录成功
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('userRole', userData.role);
-          localStorage.setItem('currentUser', email);
+          localStorage.setItem('currentUser', lowerCaseEmail);
           
           console.log('Login successful:', {
-            email,
+            email: lowerCaseEmail,
             role: userData.role,
             redirect: userData.role === 'admin' ? '/admin' : '/'
           });
@@ -114,13 +117,13 @@ export default function LoginPage() {
         }
       } else {
         setError('邮箱不存在');
-        console.log('Email not found:', email);
+        console.log('Email not found:', lowerCaseEmail);
       }
 
       // 验证用户输入
-      console.log('Login attempt:', { email });
+      console.log('Login attempt:', { email: lowerCaseEmail });
       setError('邮箱或密码错误');
-      console.log('Login failed:', { email });
+      console.log('Login failed:', { email: lowerCaseEmail });
     } catch (err) {
       console.error('Login error:', err);
       setError('登录失败，请稍后重试');

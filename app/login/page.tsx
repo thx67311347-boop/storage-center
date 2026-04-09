@@ -89,29 +89,29 @@ export default function LoginPage() {
       const userCredentials = JSON.parse(userCredentialsStr || '{}');
       console.log('userCredentials:', userCredentials);
       
-      const userData = userCredentials[lowerCaseEmail];
-      console.log('userData:', userData);
+      const localUserData = userCredentials[lowerCaseEmail];
+      console.log('localUserData:', localUserData);
 
-      if (userData) {
+      if (localUserData) {
         // 验证密码（使用Base64解码，实际应使用更安全的方式）
-        const decodedPassword = atob(userData.password);
+        const decodedPassword = atob(localUserData.password);
         console.log('Decoded password:', decodedPassword);
         console.log('Input password:', password);
         
         if (decodedPassword === password) {
           // 登录成功
           localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userRole', userData.role);
+          localStorage.setItem('userRole', localUserData.role);
           localStorage.setItem('currentUser', lowerCaseEmail);
           
           console.log('Login successful:', {
             email: lowerCaseEmail,
-            role: userData.role,
-            redirect: userData.role === 'admin' ? '/admin' : '/'
+            role: localUserData.role,
+            redirect: localUserData.role === 'admin' ? '/admin' : '/'
           });
           
           // 直接重定向，不使用router.push
-          window.location.href = userData.role === 'admin' ? '/admin' : '/';
+          window.location.href = localUserData.role === 'admin' ? '/admin' : '/';
           return;
         } else {
           setError('密码错误');

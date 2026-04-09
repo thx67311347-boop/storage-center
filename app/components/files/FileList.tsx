@@ -212,6 +212,7 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                     className="p-2 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       onSelectFile(file.id, true);
                     }}
                   >
@@ -220,6 +221,7 @@ export default function FileList({ files, onFileClick, onFileDelete, onFileDownl
                       checked={selectedFiles.includes(file.id)}
                       onChange={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         onSelectFile(file.id, true);
                       }}
                       className="h-4 w-4 text-blue-600 rounded cursor-pointer"

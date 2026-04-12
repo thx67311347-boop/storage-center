@@ -20,6 +20,7 @@ interface MobileLayoutProps {
   breadcrumb?: {id: string | null, name: string}[];
   onBreadcrumbClick?: (index: number) => void;
   isMobile: boolean;
+  onFloatingButtonClick?: () => void;
 }
 
 export default function MobileLayout({
@@ -36,7 +37,8 @@ export default function MobileLayout({
   onOpenUserManual,
   breadcrumb,
   onBreadcrumbClick,
-  isMobile
+  isMobile,
+  onFloatingButtonClick
 }: MobileLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -171,7 +173,7 @@ export default function MobileLayout({
 
       {/* 浮动操作按钮 */}
       <button
-        onClick={() => document.getElementById('file-upload-input')?.click()}
+        onClick={onFloatingButtonClick || (() => document.getElementById('file-upload-input')?.click())}
         className="fixed right-6 bottom-24 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-110"
       >
         <Icon name="plus" size={24} />

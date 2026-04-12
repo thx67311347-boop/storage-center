@@ -153,7 +153,9 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
   const getIconPath = (iconName: string) => {
     switch (iconName) {
       case 'folder':
-        return null;
+        return (
+          <path d="M10.5 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8.5L10.5 3z" />
+        );
       case 'file':
         return (
           <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" />

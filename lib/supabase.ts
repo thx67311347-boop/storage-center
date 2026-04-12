@@ -7,8 +7,15 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 interface MockSupabaseClient {
   from: (table: string) => {
     select: () => Promise<{ data: unknown[]; error: unknown }>;
-    insert: () => Promise<{ data: unknown; error: unknown }>;
+    insert: (data: any) => {
+      select: (fields: string) => {
+        single: () => Promise<{ data: unknown; error: unknown }>;
+      };
+    };
     delete: () => {
+      eq: (column: string, value: unknown) => Promise<{ error: unknown }>;
+    };
+    update: (data: any) => {
       eq: (column: string, value: unknown) => Promise<{ error: unknown }>;
     };
     eq: (column: string, value: unknown) => {
@@ -33,8 +40,15 @@ if (supabaseUrl && supabaseAnonKey && (supabaseUrl.startsWith('http://') || supa
     supabaseInstance = {
       from: () => ({
         select: () => Promise.resolve({ data: [], error: null }),
-        insert: () => Promise.resolve({ data: null, error: null }),
+        insert: (data: any) => ({
+          select: () => ({
+            single: () => Promise.resolve({ data: { ...data, id: Date.now().toString() }, error: null })
+          })
+        }),
         delete: () => ({
+          eq: () => Promise.resolve({ error: null })
+        }),
+        update: (data: any) => ({
           eq: () => Promise.resolve({ error: null })
         }),
         eq: () => ({

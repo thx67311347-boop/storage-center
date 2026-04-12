@@ -69,11 +69,12 @@ export const useMegaStorage = () => {
 
       // 监听取消信号
       if (abortController) {
-        abortController.signal.addEventListener('abort', () => {
+        const handleAbort = () => {
           console.log('Mega upload cancelled');
           // 尝试取消上传
           upload.abort?.();
-        });
+        };
+        abortController.signal.addEventListener('abort', handleAbort);
       }
 
       upload.on('progress', (progress: number) => {

@@ -8,21 +8,7 @@ export const useFileOperations = () => {
   const handleFilesUploaded = async (uploadedFiles: File[], currentFolder: string | null, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void) => {
     try {
       const currentUser = getCurrentUser();
-      // 验证文件大小限制（设置一个合理的限制，比如10MB）
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-      
-      // 过滤掉超过大小限制的文件
-      const validFiles = uploadedFiles.filter(file => {
-        if (file.size > MAX_FILE_SIZE) {
-          alert(`文件 "${file.name}" 超过了10MB的大小限制，无法上传。\n\n提示：localStorage的容量有限，建议上传较小的文件。`);
-          return false;
-        }
-        return true;
-      });
-      
-      if (validFiles.length === 0) {
-        return;
-      }
+      const validFiles = uploadedFiles;
       
       // 处理所有文件上传
       const filePromises = validFiles.map(async (file) => {
@@ -106,15 +92,24 @@ export const useFileOperations = () => {
 
   // 清理文件URL对象，避免内存泄漏
   const cleanupFileUrls = (files: FileItem[]) => {
-    files.forEach(file => {
-      if (file.url && file.url.startsWith('blob:')) {
-        try {
-          URL.revokeObjectURL(file.url);
-        } catch (error) {
-          console.error('Error revoking object URL:', error);
-        }
-      }
-    });
+    // 暂时禁用这个功能，避免出现错误
+    // try {
+    //   files.forEach(file => {
+    //     if (file && file.url) {
+    //       const urlStr = String(file.url);
+    //       // 使用更安全的方式检查，避免使用startsWith方法
+    //       if (urlStr && urlStr.length > 5 && urlStr.substring(0, 5) === 'blob:') {
+    //         try {
+    //           URL.revokeObjectURL(urlStr);
+    //         } catch (error) {
+    //           console.error('Error revoking object URL:', error);
+    //         }
+    //       }
+    //     }
+    //   });
+    // } catch (error) {
+    //   console.error('Error in cleanupFileUrls:', error);
+    // }
   };
 
   // 处理文件删除
@@ -126,11 +121,15 @@ export const useFileOperations = () => {
       const newUsedStorage = Math.max(0, currentStorage.used - fileToDelete.size);
       updateUsedStorage(-fileToDelete.size);
       // 清理文件URL对象，避免内存泄漏
-      if (fileToDelete.url && fileToDelete.url.startsWith('blob:')) {
-        try {
-          URL.revokeObjectURL(fileToDelete.url);
-        } catch (error) {
-          console.error('Error revoking object URL:', error);
+      if (fileToDelete.url) {
+        const urlStr = String(fileToDelete.url);
+        // 使用更安全的方式检查，避免使用startsWith方法
+        if (urlStr && urlStr.length > 5 && urlStr.substring(0, 5) === 'blob:') {
+          try {
+            URL.revokeObjectURL(urlStr);
+          } catch (error) {
+            console.error('Error revoking object URL:', error);
+          }
         }
       }
       // 从localStorage中删除文件数据
@@ -197,11 +196,15 @@ export const useFileOperations = () => {
       if (fileToDelete && !fileToDelete.isFolder) {
         totalSizeToRelease += fileToDelete.size;
         // 清理文件URL对象，避免内存泄漏
-        if (fileToDelete.url && fileToDelete.url.startsWith('blob:')) {
-          try {
-            URL.revokeObjectURL(fileToDelete.url);
-          } catch (error) {
-            console.error('Error revoking object URL:', error);
+        if (fileToDelete.url) {
+          const urlStr = String(fileToDelete.url);
+          // 使用更安全的方式检查，避免使用startsWith方法
+          if (urlStr && urlStr.length > 5 && urlStr.substring(0, 5) === 'blob:') {
+            try {
+              URL.revokeObjectURL(urlStr);
+            } catch (error) {
+              console.error('Error revoking object URL:', error);
+            }
           }
         }
         // 从localStorage中删除文件数据

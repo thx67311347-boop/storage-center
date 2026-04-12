@@ -14,6 +14,7 @@ import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
 import { useFileOperations } from '../../hooks/useFileOperations';
+import { useMegaStorage } from '../../hooks/useMegaStorage';
 
 export default function FileManager() {
   const router = useRouter();
@@ -36,6 +37,10 @@ export default function FileManager() {
     handleCreateFolder,
     cleanupFileUrls
   } = useFileOperations();
+  const { uploadFile, isConnected, isLoading, connectToMega } = useMegaStorage();
+  
+  const [isUploadingToMega, setIsUploadingToMega] = useState(false);
+
 
   // 解构状态
   const {
@@ -57,12 +62,12 @@ export default function FileManager() {
     isMobile
   } = state;
 
-  // 组件卸载时清理文件URL对象，避免内存泄漏
-  useEffect(() => {
-    return () => {
-      cleanupFileUrls(files);
-    };
-  }, [files, cleanupFileUrls]);
+  // 组件卸载时清理文件URL对象，避免内存泄漏（暂时禁用）
+  // useEffect(() => {
+  //   return () => {
+  //     cleanupFileUrls(files);
+  //   };
+  // }, [files, cleanupFileUrls]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -117,14 +122,72 @@ export default function FileManager() {
   }, [router]);
 
   const handleFilesUploadedWrapper = async (uploadedFiles: File[]) => {
-    // 实际的文件大小检查已经在handleFilesUploaded中进行，这里直接调用
-    await handleFilesUploaded(
-      uploadedFiles,
-      currentFolder,
-      files,
-      (updatedFiles) => dispatch({ type: 'SET_FILES', payload: updatedFiles }),
-      (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size })
-    );
+    const MEGA_THRESHOLD = 5 * 1024 * 1024; // 5MB阈值
+    
+    // 分离大文件和小文件
+    const megaFiles: File[] = [];
+    const localFiles: File[] = [];
+    
+    for (const file of uploadedFiles) {
+      if (file.size > MEGA_THRESHOLD) {
+        megaFiles.push(file);
+      } else {
+        localFiles.push(file);
+      }
+    }
+    
+    // 先处理小文件（本地存储）
+    if (localFiles.length > 0) {
+      await handleFilesUploaded(
+        localFiles,
+        currentFolder,
+        files,
+        (updatedFiles) => dispatch({ type: 'SET_FILES', payload: updatedFiles }),
+        (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size })
+      );
+    }
+    
+    // 处理大文件（Mega存储）
+    if (megaFiles.length > 0) {
+      setIsUploadingToMega(true);
+      try {
+        for (const file of megaFiles) {
+          const megaLink = await uploadFile(file);
+          if (megaLink) {
+            // 创建Mega文件项
+            const newFile: FileItem = {
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url: megaLink,
+              parentId: currentFolder,
+              isFolder: false,
+              isDeleted: false,
+              createdAt: Date.now(),
+              lastModified: Date.now(),
+              isMegaFile: true
+            };
+            
+            // 更新文件列表
+            const updatedFiles = [...files, newFile];
+            dispatch({ type: 'SET_FILES', payload: updatedFiles });
+            
+            // 保存到localStorage
+            const storageKey = getUserStorageKey();
+            localStorage.setItem(storageKey, JSON.stringify(updatedFiles));
+            
+            // 更新存储使用量
+            dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
+          }
+        }
+      } catch (error) {
+        console.error('Mega upload failed:', error);
+        alert('大文件上传失败，请重试。');
+      } finally {
+        setIsUploadingToMega(false);
+      }
+    }
   };
 
   const handleFileClick = (file: FileItem) => {
@@ -412,6 +475,7 @@ export default function FileManager() {
                   onOpenCreateFolderModal={() => dispatch({ type: 'SET_CREATE_FOLDER_MODAL', payload: true })}
                   onFilesUploaded={handleFilesUploadedWrapper}
                   currentFolderName={breadcrumb[breadcrumb.length - 1].name}
+                  isUploadingToMega={isUploadingToMega}
                 />
               </div>
             </>

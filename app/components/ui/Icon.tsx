@@ -266,27 +266,47 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
 
   if (name === 'folder') {
     const folderImagePath = "/folder-icon.png";
-    return <LazyImage src={folderImagePath} alt="folder" width={size} height={size} className={className} onClick={onClick} />;
+    const iconElement = <img src={folderImagePath} alt="folder" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
+    if (onClick) {
+      return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;
+    }
+    return iconElement;
   }
 
   if (name === 'image') {
     const imageImagePath = "/image-icon.png";
-    return <LazyImage src={imageImagePath} alt="image" width={size} height={size} className={className} onClick={onClick} />;
+    const iconElement = <img src={imageImagePath} alt="image" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
+    if (onClick) {
+      return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;
+    }
+    return iconElement;
   }
 
   if (name === 'document') {
     const documentImagePath = "/document-icon.png";
-    return <LazyImage src={documentImagePath} alt="document" width={size} height={size} className={className} onClick={onClick} />;
+    const iconElement = <img src={documentImagePath} alt="document" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
+    if (onClick) {
+      return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;
+    }
+    return iconElement;
   }
 
   if (name === 'video') {
     const videoImagePath = "/video-icon.jpg";
-    return <LazyImage src={videoImagePath} alt="video" width={size} height={size} className={className} onClick={onClick} />;
+    const iconElement = <img src={videoImagePath} alt="video" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
+    if (onClick) {
+      return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;
+    }
+    return iconElement;
   }
 
   if (name === 'audio') {
     const audioImagePath = "/audio-icon.webp";
-    return <LazyImage src={audioImagePath} alt="audio" width={size} height={size} className={className} onClick={onClick} />;
+    const iconElement = <img src={audioImagePath} alt="audio" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
+    if (onClick) {
+      return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;
+    }
+    return iconElement;
   }
 
   if (onClick) {

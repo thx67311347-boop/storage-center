@@ -119,7 +119,12 @@ export const loadFilesFromStorage = (): FileItem[] => {
     const storageKey = getUserStorageKey();
     const storedFiles = localStorage.getItem(storageKey);
     if (storedFiles) {
-      return JSON.parse(storedFiles);
+      const files = JSON.parse(storedFiles);
+      // 确保所有文件的url都是字符串或undefined
+      return files.map((file: any) => ({
+        ...file,
+        url: file.url ? String(file.url) : undefined
+      }));
     } else {
       // 使用默认数据作为回退（每个用户独立的默认文件）
       return getDefaultFiles();

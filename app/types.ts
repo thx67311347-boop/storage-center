@@ -10,4 +10,5 @@ export interface FileItem {
   isDeleted?: boolean;
   deletedAt?: number | null;
   userId?: string;
+  isMegaFile?: boolean;
 }

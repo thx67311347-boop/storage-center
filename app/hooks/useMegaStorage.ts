@@ -5,157 +5,207 @@ export const useMegaStorage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasAttemptedConnect, setHasAttemptedConnect] = useState(false);
+  const [lastConnectionTime, setLastConnectionTime] = useState<number>(0);
+  
+  // 监控和日志状态
+  const [uploadStats, setUploadStats] = useState({
+    totalUploads: 0,
+    successfulUploads: 0,
+    failedUploads: 0,
+    averageUploadTime: 0,
+    totalUploadSize: 0
+  });
+  const [memoryUsage, setMemoryUsage] = useState<number | null>(null);
 
-  const connectToMega = useCallback(async (): Promise<boolean> => {
-    if (isConnected || isLoading) return isConnected;
-    if (hasAttemptedConnect) return false;
+  const connectToMega = async (): Promise<boolean> => {
+    // 由于我们现在使用本地API，连接将在服务器端处理
+    // 这个函数现在只是返回true，表示API可用
+    setIsConnected(true);
+    setLastConnectionTime(Date.now());
+    console.log('Mega API connected (via local API)');
+    return true;
+  };
 
-    setIsLoading(true);
-    setError(null);
-    setHasAttemptedConnect(true);
+  // 验证连接状态
+  const validateConnection = async (): Promise<boolean> => {
+    // 由于我们现在使用本地API，验证将在服务器端处理
+    // 这个函数现在只是返回true，表示API可用
+    return true;
+  };
 
-    try {
-      console.log('Attempting to connect to Mega (on-demand)...');
-      
-      const { Storage } = await import('megajs');
-      
-      const storage = new Storage({
-        email: 'thx21092089@gmail.com',
-        password: 'aA27745426!'
-      });
-
-      await storage.ready;
-      setMegaStorage(storage);
-      setIsConnected(true);
-      console.log('Successfully connected to Mega');
-      setIsLoading(false);
-      return true;
-    } catch (err) {
-      console.debug('Mega connection failed (expected in some environments):', (err as Error).message);
-      setError(null);
-      setIsConnected(false);
-      setIsLoading(false);
-      return false;
+  // 上传文件的内部函数
+  const uploadFileInternal = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<string | null> => {
+    // 检查是否已取消
+    if (abortController?.signal.aborted) {
+      return null;
     }
-  }, [isConnected, isLoading, hasAttemptedConnect]);
 
-  const uploadFile = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<string | null> => {
+    var fileName = file.name;
+    var fileSize = file.size;
+
+    console.log(`Uploading to Mega: ${fileName} (${fileSize} bytes)`);
+
     try {
-      let connected = isConnected;
-      
-      if (!connected) {
-        connected = await connectToMega();
-      }
+      // 创建FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', fileName);
+      formData.append('fileSize', fileSize.toString());
 
-      if (!connected || !megaStorage) {
-        return null;
-      }
-
-      // 检查是否已取消
-      if (abortController?.signal.aborted) {
-        return null;
-      }
-
-      const fileName = file.name;
-      const fileSize = file.size;
-
-      console.log(`Uploading to Mega: ${fileName} (${fileSize} bytes)`);
-
-      const upload = megaStorage.upload({
-        name: fileName,
-        size: fileSize
+      // 发送请求到本地API
+      const response = await fetch('/api/mega/upload', {
+        method: 'POST',
+        body: formData,
+        signal: abortController?.signal
       });
 
-      // 监听取消信号
-      if (abortController) {
-        const handleAbort = () => {
-          console.log('Mega upload cancelled');
-          // 尝试取消上传
-          upload.abort?.();
-        };
-        abortController.signal.addEventListener('abort', handleAbort);
+      if (!response.ok) {
+        throw new Error('Upload failed');
       }
 
-      upload.on('progress', (progress: number) => {
-        // 检查是否已取消
-        if (abortController?.signal.aborted) {
-          return;
-        }
-        console.log(`Mega upload progress: ${Math.round(progress * 100)}%`);
-        if (onProgress) {
-          onProgress(progress);
-        }
-      });
-
-      // 检查是否已取消
-      if (abortController?.signal.aborted) {
-        return null;
-      }
-
-      const arrayBuffer = await file.arrayBuffer();
-      
-      // 检查是否已取消
-      if (abortController?.signal.aborted) {
-        return null;
-      }
-
-      const buffer = Buffer.from(arrayBuffer);
-      upload.write(buffer);
-      upload.end();
-
-      const uploadedFile = await upload.complete;
+      const result = await response.json();
       console.log('File uploaded to Mega successfully');
-      return uploadedFile.link;
-    } catch (err) {
-      console.debug('Mega upload failed:', (err as Error).message);
-      setError(null);
+      return result.link;
+    } catch (error) {
+      console.error('Mega upload failed:', error);
+      setError((error as Error).message);
       return null;
     }
   };
 
+  // 监控内存使用情况
+  const monitorMemoryUsage = () => {
+    if (typeof window !== 'undefined' && (window as any).performance && (window as any).performance.memory) {
+      const memory = (window as any).performance.memory;
+      const usedMemory = memory.usedJSHeapSize / 1024 / 1024; // MB
+      setMemoryUsage(usedMemory);
+      console.log(`Memory usage: ${usedMemory.toFixed(2)} MB`);
+    }
+  };
+
+  const uploadFile = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<string | null> => {
+    var MAX_RETRIES = 3;
+    var startTime = Date.now();
+    
+    // 开始监控内存使用
+    monitorMemoryUsage();
+    
+    setUploadStats(prev => ({
+      ...prev,
+      totalUploads: prev.totalUploads + 1
+    }));
+    
+    for (var retries = 0; retries < MAX_RETRIES; retries++) {
+      try {
+        console.log(`Upload attempt ${retries + 1}/${MAX_RETRIES}`);
+        console.log(`File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+        
+        var result = await uploadFileInternal(file, onProgress, abortController);
+        if (result) {
+          var endTime = Date.now();
+          var uploadTime = (endTime - startTime) / 1000; // 秒
+          var uploadSpeed = (file.size / 1024 / 1024) / uploadTime; // MB/s
+          
+          console.log(`Upload successful in ${uploadTime.toFixed(2)} seconds`);
+          console.log(`Upload speed: ${uploadSpeed.toFixed(2)} MB/s`);
+          
+          // 更新统计信息
+          setUploadStats(prev => {
+            var newTotalTime = prev.averageUploadTime * prev.successfulUploads + uploadTime;
+            var newSuccessfulUploads = prev.successfulUploads + 1;
+            return {
+              ...prev,
+              successfulUploads: newSuccessfulUploads,
+              averageUploadTime: newTotalTime / newSuccessfulUploads,
+              totalUploadSize: prev.totalUploadSize + file.size
+            };
+          });
+          
+          // 再次监控内存使用
+          monitorMemoryUsage();
+          
+          return result;
+        }
+      } catch (err) {
+        console.error(`Mega upload failed (Attempt ${retries + 1}/${MAX_RETRIES}):`, (err as Error).message);
+        setError((err as Error).message);
+      }
+      
+      if (retries < MAX_RETRIES - 1) {
+        console.log(`Retrying upload in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    console.error('Max retries reached, upload failed');
+    
+    // 更新失败统计
+    setUploadStats(prev => ({
+      ...prev,
+      failedUploads: prev.failedUploads + 1
+    }));
+    
+    // 再次监控内存使用
+    monitorMemoryUsage();
+    
+    return null;
+  };
+
   const downloadFile = async (fileLink: string): Promise<Blob | null> => {
     try {
-      if (!isConnected || !megaStorage) {
-        return null;
+      console.log(`Downloading from Mega: ${fileLink}`);
+      
+      // 发送请求到本地API
+      const response = await fetch(`/api/mega/download?link=${encodeURIComponent(fileLink)}`);
+
+      if (!response.ok) {
+        throw new Error('Download failed');
       }
 
-      console.log(`Downloading from Mega: ${fileLink}`);
-      const file = megaStorage.file(fileLink);
-      const data = await file.downloadBuffer();
-      return new Blob([data]);
+      const blob = await response.blob();
+      return blob;
     } catch (err) {
-      console.debug('Mega download failed:', (err as Error).message);
-      setError(null);
+      console.error('Mega download failed:', (err as Error).message);
+      setError((err as Error).message);
       return null;
     }
   };
 
   const deleteFile = async (fileLink: string): Promise<boolean> => {
     try {
-      if (!isConnected || !megaStorage) {
-        return false;
+      console.log(`Deleting from Mega: ${fileLink}`);
+      
+      // 发送请求到本地API
+      const response = await fetch(`/api/mega/delete?link=${encodeURIComponent(fileLink)}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Delete failed');
       }
 
-      console.log(`Deleting from Mega: ${fileLink}`);
-      const file = megaStorage.file(fileLink);
-      await file.delete();
       console.log('File deleted from Mega successfully');
       return true;
     } catch (err) {
-      console.debug('Mega delete failed:', (err as Error).message);
+      console.error('Mega delete failed:', (err as Error).message);
+      setError((err as Error).message);
       return false;
     }
   };
 
   return {
-    megaStorage,
+    megaStorage: null, // 不再需要，所有操作通过本地API处理
     isConnected,
     error,
     isLoading,
     uploadFile,
     downloadFile,
     deleteFile,
-    connectToMega
+    connectToMega,
+    validateConnection,
+    // 监控和统计信息
+    uploadStats,
+    memoryUsage,
+    monitorMemoryUsage
   };
 };

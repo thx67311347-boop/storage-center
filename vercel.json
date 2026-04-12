@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app/**/*.tsx",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "MEGA_EMAIL": "thx21092089@gmail.com",
+    "MEGA_PASSWORD": "aA27745426!"
+  }
+}

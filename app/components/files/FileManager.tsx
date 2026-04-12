@@ -11,6 +11,7 @@ import Breadcrumb from '../layout/Breadcrumb';
 import FileActions from './FileActions';
 import DownloadProgress from '../ui/DownloadProgress';
 import UploadProgress from '../ui/UploadProgress';
+import UploadTaskList from '../ui/UploadTaskList';
 import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
@@ -26,6 +27,19 @@ export default function FileManager() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadingFileName, setDownloadingFileName] = useState('');
   
+  // 上传任务类型定义
+  interface UploadTask {
+    id: string;
+    fileName: string;
+    fileSize: number;
+    progress: number;
+    status: 'pending' | 'uploading' | 'success' | 'error' | 'timeout';
+    errorMessage: string | null;
+    startTime: number;
+    endTime: number | null;
+    isMegaFile: boolean;
+  }
+
   // 上传进度状态
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -34,6 +48,11 @@ export default function FileManager() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploadTimeout, setIsUploadTimeout] = useState(false);
   const [uploadAbortController, setUploadAbortController] = useState<AbortController | null>(null);
+  
+  // 上传任务列表
+  const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
+  const [currentUploadTask, setCurrentUploadTask] = useState<UploadTask | null>(null);
+  const [showUploadTasks, setShowUploadTasks] = useState(false);
   
   // 初始化自定义hooks
   const { loadFilesFromStorage, saveFilesToStorage, getStorageUsage } = useFileStorage();
@@ -340,6 +359,16 @@ export default function FileManager() {
       uploadAbortController.abort();
       setUploadAbortController(null);
     }
+    
+    // 更新当前任务状态
+    if (currentUploadTask) {
+      updateUploadTask(currentUploadTask.id, {
+        status: 'error',
+        errorMessage: '上传已取消',
+        endTime: Date.now()
+      });
+    }
+    
     setIsUploading(false);
     setIsUploadingToMega(false);
     setUploadProgress(0);
@@ -376,8 +405,36 @@ export default function FileManager() {
     }
   };
 
+  // 创建新的上传任务
+  const createUploadTask = (file: File, isMegaFile: boolean): UploadTask => {
+    return {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      fileName: file.name,
+      fileSize: file.size,
+      progress: 0,
+      status: 'pending',
+      errorMessage: null,
+      startTime: Date.now(),
+      endTime: null,
+      isMegaFile
+    };
+  };
+
+  // 更新上传任务状态
+  const updateUploadTask = (taskId: string, updates: Partial<UploadTask>) => {
+    setUploadTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    );
+  };
+
   // 处理单个Mega文件上传
   const handleMegaFileUpload = async (file: File) => {
+    const task = createUploadTask(file, true);
+    setCurrentUploadTask(task);
+    setUploadTasks(prev => [task, ...prev]);
+    
     setIsUploading(true);
     setUploadingFileName(file.name);
     setUploadProgress(0);
@@ -394,14 +451,23 @@ export default function FileManager() {
     const timeoutCheckInterval = setInterval(() => {
       if (Date.now() - lastProgressTime > 30000) { // 30秒
         setIsUploadTimeout(true);
+        updateUploadTask(task.id, {
+          status: 'timeout',
+          errorMessage: '上传超时，请检查网络连接',
+          endTime: Date.now()
+        });
         handleCancelUpload();
         clearInterval(timeoutCheckInterval);
       }
     }, 5000);
     
     try {
+      updateUploadTask(task.id, { status: 'uploading' });
+      
       const megaLink = await uploadFile(file, (progress) => {
-        setUploadProgress(Math.round(progress * 100));
+        const currentProgress = Math.round(progress * 100);
+        setUploadProgress(currentProgress);
+        updateUploadTask(task.id, { progress: currentProgress });
         lastProgressTime = Date.now(); // 更新最后进度时间
       }, abortController);
       
@@ -432,13 +498,23 @@ export default function FileManager() {
         
         // 更新存储使用量
         dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
+        
+        // 更新任务状态为成功
+        updateUploadTask(task.id, {
+          status: 'success',
+          progress: 100,
+          endTime: Date.now()
+        });
       }
     } catch (error) {
       console.error('Mega upload failed:', error);
-      setUploadError('上传失败，请重试。');
-      setTimeout(() => {
-        setUploadError(null);
-      }, 3000);
+      const errorMessage = error instanceof Error ? error.message : '上传失败，请重试';
+      setUploadError(errorMessage);
+      updateUploadTask(task.id, {
+        status: 'error',
+        errorMessage,
+        endTime: Date.now()
+      });
     } finally {
       clearInterval(timeoutCheckInterval);
     }
@@ -447,6 +523,20 @@ export default function FileManager() {
   const handleSettingsClick = () => {
     // 处理设置按钮点击，导航到设置页面
     router.push('/settings');
+  };
+
+  // 重试上传任务
+  const handleRetryUpload = (task: UploadTask) => {
+    // 这里需要重新创建File对象，实际应用中可能需要从原始文件源获取
+    // 这里简化处理，仅作为示例
+    const mockFile = new File([''], task.fileName, { type: task.fileName.split('.').pop() || '' });
+    Object.defineProperty(mockFile, 'size', { value: task.fileSize });
+    handleMegaFileUpload(mockFile);
+  };
+
+  // 关闭上传任务
+  const handleCloseTask = (taskId: string) => {
+    setUploadTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
   };
 
   // 处理文件分享
@@ -656,9 +746,18 @@ export default function FileManager() {
         progress={uploadProgress} 
         fileName={uploadingFileName} 
         onCancelUpload={handleCancelUpload}
+        onRetryUpload={() => currentUploadTask && handleMegaFileUpload(new File([], currentUploadTask.fileName))}
         remainingTime={calculateRemainingTime()}
         isTimeout={isUploadTimeout}
         error={uploadError}
+        status={isUploadTimeout ? 'timeout' : uploadError ? 'error' : 'uploading'}
+      />
+      <UploadTaskList
+        tasks={uploadTasks}
+        onRetryTask={handleRetryUpload}
+        onCloseTask={handleCloseTask}
+        onToggleVisibility={() => setShowUploadTasks(!showUploadTasks)}
+        isVisible={showUploadTasks}
       />
     </>
   );

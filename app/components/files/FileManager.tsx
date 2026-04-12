@@ -154,7 +154,7 @@ export default function FileManager() {
         files,
         (updatedFiles) => dispatch({ type: 'SET_FILES', payload: updatedFiles }),
         (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size }),
-        uploadAbortController
+        uploadAbortController || undefined
       );
     }
     
@@ -165,61 +165,7 @@ export default function FileManager() {
         // 逐个处理文件
         for (let i = 0; i < megaFiles.length; i++) {
           const file = megaFiles[i];
-          
-          setIsUploading(true);
-          setUploadingFileName(file.name);
-          setUploadProgress(0);
-          setUploadStartTime(Date.now());
-          setUploadError(null);
-          setIsUploadTimeout(false);
-          
-          // 创建AbortController用于取消上传
-          const abortController = new AbortController();
-          setUploadAbortController(abortController);
-          
-          // 添加上传超时检测（30秒无进度更新）
-          let lastProgressTime = Date.now();
-          const timeoutCheckInterval = setInterval(() => {
-            if (Date.now() - lastProgressTime > 30000) { // 30秒
-              setIsUploadTimeout(true);
-              handleCancelUpload();
-              clearInterval(timeoutCheckInterval);
-            }
-          }, 5000);
-          
-          const megaLink = await uploadFile(file, (progress) => {
-            setUploadProgress(Math.round(progress * 100));
-            lastProgressTime = Date.now(); // 更新最后进度时间
-          }, abortController);
-          
-          clearInterval(timeoutCheckInterval);
-          
-          if (megaLink) {
-            // 创建Mega文件项
-            const newFile: FileItem = {
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              url: megaLink,
-              parentId: currentFolder,
-              isFolder: false,
-              isDeleted: false,
-              lastModified: Date.now(),
-              isMegaFile: true
-            };
-            
-            // 更新文件列表
-            const updatedFiles = [...files, newFile];
-            dispatch({ type: 'SET_FILES', payload: updatedFiles });
-            
-            // 保存到localStorage
-            const storageKey = getUserStorageKey();
-            localStorage.setItem(storageKey, JSON.stringify(updatedFiles));
-            
-            // 更新存储使用量
-            dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
-          }
+          await handleMegaFileUpload(file);
         }
       } catch (error) {
         console.error('Mega upload failed:', error);
@@ -427,6 +373,74 @@ export default function FileManager() {
       const hours = Math.floor(remainingTime / 3600);
       const minutes = Math.floor((remainingTime % 3600) / 60);
       return `${hours}小时${minutes}分`;
+    }
+  };
+
+  // 处理单个Mega文件上传
+  const handleMegaFileUpload = async (file: File) => {
+    setIsUploading(true);
+    setUploadingFileName(file.name);
+    setUploadProgress(0);
+    setUploadStartTime(Date.now());
+    setUploadError(null);
+    setIsUploadTimeout(false);
+    
+    // 创建AbortController用于取消上传
+    const abortController = new AbortController();
+    setUploadAbortController(abortController);
+    
+    // 添加上传超时检测（30秒无进度更新）
+    let lastProgressTime = Date.now();
+    const timeoutCheckInterval = setInterval(() => {
+      if (Date.now() - lastProgressTime > 30000) { // 30秒
+        setIsUploadTimeout(true);
+        handleCancelUpload();
+        clearInterval(timeoutCheckInterval);
+      }
+    }, 5000);
+    
+    try {
+      const megaLink = await uploadFile(file, (progress) => {
+        setUploadProgress(Math.round(progress * 100));
+        lastProgressTime = Date.now(); // 更新最后进度时间
+      }, abortController);
+      
+      clearInterval(timeoutCheckInterval);
+      
+      if (megaLink) {
+        // 创建Mega文件项
+        const newFile: FileItem = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: megaLink,
+          parentId: currentFolder,
+          isFolder: false,
+          isDeleted: false,
+          lastModified: Date.now(),
+          isMegaFile: true
+        };
+        
+        // 更新文件列表
+        const updatedFiles = [...files, newFile];
+        dispatch({ type: 'SET_FILES', payload: updatedFiles });
+        
+        // 保存到localStorage
+        const storageKey = getUserStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(updatedFiles));
+        
+        // 更新存储使用量
+        dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
+      }
+    } catch (error) {
+      console.error('Mega upload failed:', error);
+      setUploadError('上传失败，请重试。');
+      setTimeout(() => {
+        setUploadError(null);
+      }, 3000);
+    } finally {
+      clearInterval(timeoutCheckInterval);
     }
   };
 

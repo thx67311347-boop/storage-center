@@ -6,50 +6,31 @@ import { getCurrentUser, saveFilesToStorage, saveFileData, getStorageUsage, dele
 export const useFileOperations = () => {
   // 分块上传文件
   const uploadFileInChunks = async (file: File, abortController?: AbortController): Promise<{fileId: string; fileData: string}> => {
-    const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const chunks: string[] = [];
     
-    for (let i = 0; i < totalChunks; i++) {
+    // 直接读取整个文件，避免循环闭包问题
+    const fileData = await new Promise<string>((resolve, reject) => {
       // 检查是否已取消
       if (abortController?.signal.aborted) {
-        throw new Error('上传已取消');
+        reject(new Error('上传已取消'));
+        return;
       }
       
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = file.slice(start, end);
-      
-      const chunkData = await new Promise<string>((resolve, reject) => {
-        // 检查是否已取消
+      const reader = new FileReader();
+      reader.onload = (e) => {
         if (abortController?.signal.aborted) {
           reject(new Error('上传已取消'));
           return;
         }
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (abortController?.signal.aborted) {
-            reject(new Error('上传已取消'));
-            return;
-          }
-          if (e.target?.result) {
-            resolve((e.target.result as string).split(',')[1]); // Only base64 part
-          } else {
-            reject(new Error('文件读取失败'));
-          }
-        };
-        reader.onerror = () => reject(new Error('文件读取失败'));
-        reader.readAsDataURL(chunk);
-      });
-      
-      chunks.push(chunkData);
-    }
-    
-    // 合并所有块
-    const combinedData = chunks.join('');
-    const fileData = `data:${file.type};base64,${combinedData}`;
+        if (e.target?.result) {
+          resolve(e.target.result as string);
+        } else {
+          reject(new Error('文件读取失败'));
+        }
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsDataURL(file);
+    });
     
     return { fileId, fileData };
   };

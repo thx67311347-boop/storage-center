@@ -30,6 +30,10 @@ export default function FileManager() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState('');
+  const [uploadStartTime, setUploadStartTime] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploadTimeout, setIsUploadTimeout] = useState(false);
+  const [uploadAbortController, setUploadAbortController] = useState<AbortController | null>(null);
   
   // 初始化自定义hooks
   const { loadFilesFromStorage, saveFilesToStorage, getStorageUsage } = useFileStorage();
@@ -149,7 +153,8 @@ export default function FileManager() {
         currentFolder,
         files,
         (updatedFiles) => dispatch({ type: 'SET_FILES', payload: updatedFiles }),
-        (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size })
+        (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size }),
+        uploadAbortController
       );
     }
     
@@ -161,10 +166,30 @@ export default function FileManager() {
           setIsUploading(true);
           setUploadingFileName(file.name);
           setUploadProgress(0);
+          setUploadStartTime(Date.now());
+          setUploadError(null);
+          setIsUploadTimeout(false);
+          
+          // 创建AbortController用于取消上传
+          const abortController = new AbortController();
+          setUploadAbortController(abortController);
+          
+          // 添加上传超时检测（30秒无进度更新）
+          let lastProgressTime = Date.now();
+          const timeoutCheckInterval = setInterval(() => {
+            if (Date.now() - lastProgressTime > 30000) { // 30秒
+              setIsUploadTimeout(true);
+              handleCancelUpload();
+              clearInterval(timeoutCheckInterval);
+            }
+          }, 5000);
           
           const megaLink = await uploadFile(file, (progress) => {
             setUploadProgress(Math.round(progress * 100));
-          });
+            lastProgressTime = Date.now(); // 更新最后进度时间
+          }, abortController);
+          
+          clearInterval(timeoutCheckInterval);
           
           if (megaLink) {
             // 创建Mega文件项
@@ -195,12 +220,17 @@ export default function FileManager() {
         }
       } catch (error) {
         console.error('Mega upload failed:', error);
-        alert('大文件上传失败，请重试。');
+        setUploadError('上传失败，请重试。');
+        setTimeout(() => {
+          setUploadError(null);
+        }, 3000);
       } finally {
         setIsUploadingToMega(false);
         setIsUploading(false);
         setUploadProgress(0);
         setUploadingFileName('');
+        setUploadStartTime(null);
+        setUploadAbortController(null);
       }
     }
   };
@@ -353,6 +383,48 @@ export default function FileManager() {
     localStorage.removeItem('isLoggedIn');
     // 重定向到登录页面
     router.push('/login');
+  };
+
+  // 取消上传
+  const handleCancelUpload = () => {
+    if (uploadAbortController) {
+      uploadAbortController.abort();
+      setUploadAbortController(null);
+    }
+    setIsUploading(false);
+    setIsUploadingToMega(false);
+    setUploadProgress(0);
+    setUploadingFileName('');
+    setUploadStartTime(null);
+    setUploadError(null);
+    setIsUploadTimeout(false);
+  };
+
+  // 计算预估剩余时间
+  const calculateRemainingTime = () => {
+    if (!uploadStartTime || uploadProgress === 0) return '计算中...';
+    
+    const elapsedTime = (Date.now() - uploadStartTime) / 1000; // 秒
+    const progressRatio = uploadProgress / 100;
+    
+    if (progressRatio === 0) return '计算中...';
+    
+    const totalTime = elapsedTime / progressRatio;
+    const remainingTime = totalTime - elapsedTime;
+    
+    if (remainingTime < 0) return '完成中...';
+    
+    if (remainingTime < 60) {
+      return `${Math.ceil(remainingTime)}秒`;
+    } else if (remainingTime < 3600) {
+      const minutes = Math.floor(remainingTime / 60);
+      const seconds = Math.floor(remainingTime % 60);
+      return `${minutes}分${seconds}秒`;
+    } else {
+      const hours = Math.floor(remainingTime / 3600);
+      const minutes = Math.floor((remainingTime % 3600) / 60);
+      return `${hours}小时${minutes}分`;
+    }
   };
 
   const handleSettingsClick = () => {
@@ -566,6 +638,10 @@ export default function FileManager() {
         isUploading={isUploading} 
         progress={uploadProgress} 
         fileName={uploadingFileName} 
+        onCancelUpload={handleCancelUpload}
+        remainingTime={calculateRemainingTime()}
+        isTimeout={isUploadTimeout}
+        error={uploadError}
       />
     </>
   );

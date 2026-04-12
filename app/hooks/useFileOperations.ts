@@ -5,20 +5,35 @@ import { getCurrentUser, saveFilesToStorage, saveFileData, getStorageUsage, dele
 // 文件操作相关的自定义hook
 export const useFileOperations = () => {
   // 分块上传文件
-  const uploadFileInChunks = async (file: File): Promise<{fileId: string; fileData: string}> => {
+  const uploadFileInChunks = async (file: File, abortController?: AbortController): Promise<{fileId: string; fileData: string}> => {
     const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     const chunks: string[] = [];
     
     for (let i = 0; i < totalChunks; i++) {
+      // 检查是否已取消
+      if (abortController?.signal.aborted) {
+        throw new Error('上传已取消');
+      }
+      
       const start = i * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
       
       const chunkData = await new Promise<string>((resolve, reject) => {
+        // 检查是否已取消
+        if (abortController?.signal.aborted) {
+          reject(new Error('上传已取消'));
+          return;
+        }
+        
         const reader = new FileReader();
         reader.onload = (e) => {
+          if (abortController?.signal.aborted) {
+            reject(new Error('上传已取消'));
+            return;
+          }
           if (e.target?.result) {
             resolve((e.target.result as string).split(',')[1]); // Only base64 part
           } else {
@@ -40,7 +55,7 @@ export const useFileOperations = () => {
   };
 
   // 处理文件上传
-  const handleFilesUploaded = async (uploadedFiles: File[], currentFolder: string | null, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void) => {
+  const handleFilesUploaded = async (uploadedFiles: File[], currentFolder: string | null, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void, abortController?: AbortController) => {
     try {
       const currentUser = getCurrentUser();
       const validFiles = uploadedFiles;
@@ -53,15 +68,25 @@ export const useFileOperations = () => {
           
           // 对于大文件使用分块上传
           if (file.size > 10 * 1024 * 1024) { // 大于10MB
-            const result = await uploadFileInChunks(file);
+            const result = await uploadFileInChunks(file, abortController);
             fileId = result.fileId;
             fileData = result.fileData;
           } else {
             // 小文件直接上传
             fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
             fileData = await new Promise<string>((resolve, reject) => {
+              // 检查是否已取消
+              if (abortController?.signal.aborted) {
+                reject(new Error('上传已取消'));
+                return;
+              }
+              
               const reader = new FileReader();
               reader.onload = (e) => {
+                if (abortController?.signal.aborted) {
+                  reject(new Error('上传已取消'));
+                  return;
+                }
                 if (e.target?.result) {
                   resolve(e.target.result as string);
                 } else {

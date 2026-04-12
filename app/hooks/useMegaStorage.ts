@@ -40,7 +40,7 @@ export const useMegaStorage = () => {
     }
   }, [isConnected, isLoading, hasAttemptedConnect]);
 
-  const uploadFile = async (file: File, onProgress?: (progress: number) => void): Promise<string | null> => {
+  const uploadFile = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<string | null> => {
     try {
       let connected = isConnected;
       
@@ -49,6 +49,11 @@ export const useMegaStorage = () => {
       }
 
       if (!connected || !megaStorage) {
+        return null;
+      }
+
+      // 检查是否已取消
+      if (abortController?.signal.aborted) {
         return null;
       }
 
@@ -62,14 +67,38 @@ export const useMegaStorage = () => {
         size: fileSize
       });
 
+      // 监听取消信号
+      if (abortController) {
+        abortController.signal.addEventListener('abort', () => {
+          console.log('Mega upload cancelled');
+          // 尝试取消上传
+          upload.abort?.();
+        });
+      }
+
       upload.on('progress', (progress: number) => {
+        // 检查是否已取消
+        if (abortController?.signal.aborted) {
+          return;
+        }
         console.log(`Mega upload progress: ${Math.round(progress * 100)}%`);
         if (onProgress) {
           onProgress(progress);
         }
       });
 
+      // 检查是否已取消
+      if (abortController?.signal.aborted) {
+        return null;
+      }
+
       const arrayBuffer = await file.arrayBuffer();
+      
+      // 检查是否已取消
+      if (abortController?.signal.aborted) {
+        return null;
+      }
+
       const buffer = Buffer.from(arrayBuffer);
       upload.write(buffer);
       upload.end();

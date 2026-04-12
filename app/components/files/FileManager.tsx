@@ -164,7 +164,6 @@ export default function FileManager() {
               parentId: currentFolder,
               isFolder: false,
               isDeleted: false,
-              createdAt: Date.now(),
               lastModified: Date.now(),
               isMegaFile: true
             };

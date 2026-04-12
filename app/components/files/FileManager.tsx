@@ -464,7 +464,7 @@ export default function FileManager() {
     try {
       updateUploadTask(task.id, { status: 'uploading' });
       
-      const megaLink = await uploadFile(file, (progress) => {
+      const uploadResult = await uploadFile(file, (progress) => {
         const currentProgress = Math.round(progress * 100);
         setUploadProgress(currentProgress);
         updateUploadTask(task.id, { progress: currentProgress });
@@ -473,14 +473,14 @@ export default function FileManager() {
       
       clearInterval(timeoutCheckInterval);
       
-      if (megaLink) {
+      if (uploadResult && uploadResult.success) {
         // 创建Mega文件项
         const newFile: FileItem = {
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
           name: file.name,
           size: file.size,
           type: file.type,
-          url: megaLink,
+          url: uploadResult.link || '#',
           parentId: currentFolder,
           isFolder: false,
           isDeleted: false,

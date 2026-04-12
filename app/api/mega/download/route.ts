@@ -18,10 +18,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file link' }, { status: 400 });
     }
 
-    // 连接到MEGA
+    // 连接到MEGA，优先使用会话密钥
     const storage = new Storage({
-      email,
-      password
+      sid: process.env.MEGA_SESSION_ID
     });
 
     await storage.ready;

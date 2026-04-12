@@ -34,7 +34,7 @@ export const useMegaStorage = () => {
   };
 
   // 上传文件的内部函数
-  const uploadFileInternal = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<string | null> => {
+  const uploadFileInternal = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<{success: boolean, link: string | null} | null> => {
     // 检查是否已取消
     if (abortController?.signal.aborted) {
       return null;
@@ -60,12 +60,14 @@ export const useMegaStorage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorText = await response.text();
+        throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('Raw response:', result);
       console.log('File uploaded to Mega successfully');
-      return result.link;
+      return { success: true, link: result.link || null };
     } catch (error) {
       console.error('Mega upload failed:', error);
       setError((error as Error).message);
@@ -83,7 +85,7 @@ export const useMegaStorage = () => {
     }
   };
 
-  const uploadFile = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<string | null> => {
+  const uploadFile = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<{success: boolean, link: string | null} | null> => {
     var MAX_RETRIES = 3;
     var startTime = Date.now();
     
@@ -101,13 +103,14 @@ export const useMegaStorage = () => {
         console.log(`File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
         
         var result = await uploadFileInternal(file, onProgress, abortController);
-        if (result) {
+        if (result && result.success) {
           var endTime = Date.now();
           var uploadTime = (endTime - startTime) / 1000; // 秒
           var uploadSpeed = (file.size / 1024 / 1024) / uploadTime; // MB/s
           
           console.log(`Upload successful in ${uploadTime.toFixed(2)} seconds`);
           console.log(`Upload speed: ${uploadSpeed.toFixed(2)} MB/s`);
+          console.log(`Upload result:`, result);
           
           // 更新统计信息
           setUploadStats(prev => {

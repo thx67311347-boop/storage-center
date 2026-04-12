@@ -17,6 +17,8 @@ interface MobileLayoutProps {
   searchQuery: string;
   onLogout: () => void;
   onOpenUserManual?: () => void;
+  breadcrumb?: {id: string | null, name: string}[];
+  onBreadcrumbClick?: (index: number) => void;
 }
 
 export default function MobileLayout({
@@ -30,7 +32,9 @@ export default function MobileLayout({
   onClearSearch,
   searchQuery,
   onLogout,
-  onOpenUserManual
+  onOpenUserManual,
+  breadcrumb,
+  onBreadcrumbClick
 }: MobileLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -124,6 +128,27 @@ export default function MobileLayout({
           )}
         </div>
       </div>
+
+      {/* 路径导航 */}
+      {breadcrumb && onBreadcrumbClick && (
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-3">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {breadcrumb.map((item, index) => (
+              <React.Fragment key={item.id || 'root'}>
+                <button
+                  onClick={() => onBreadcrumbClick(index)}
+                  className={`text-sm whitespace-nowrap ${index === breadcrumb.length - 1 ? 'font-semibold text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'}`}
+                >
+                  {item.name}
+                </button>
+                {index < breadcrumb.length - 1 && (
+                  <Icon name="sort" size={14} className="text-gray-400 flex-shrink-0 transform rotate-90" />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 主内容 */}
       <main className="flex-1 overflow-y-auto p-4">

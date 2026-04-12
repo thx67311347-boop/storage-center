@@ -712,6 +712,8 @@ export default function Home() {
         searchQuery={searchQuery}
         onLogout={handleLogout}
         onOpenUserManual={() => setIsUserManualModalOpen(true)}
+        breadcrumb={breadcrumb}
+        onBreadcrumbClick={handleBreadcrumbClick}
       >
         <div className="space-y-6">
           {!isMobile && (
@@ -767,6 +769,8 @@ export default function Home() {
               onSelectFile={handleSelectFile}
               isTrash={selectedSection === 'trash'}
               selectedSection={selectedSection}
+              breadcrumb={breadcrumb}
+              onBreadcrumbClick={handleBreadcrumbClick}
             />
           ) : (
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">

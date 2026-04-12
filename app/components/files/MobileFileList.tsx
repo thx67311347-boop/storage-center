@@ -18,6 +18,8 @@ interface MobileFileListProps {
   onSelectFile: (fileId: string, isCtrlPressed: boolean) => void;
   isTrash: boolean;
   selectedSection: string;
+  breadcrumb: {id: string | null, name: string}[];
+  onBreadcrumbClick: (index: number) => void;
 }
 
 export default function MobileFileList({
@@ -33,7 +35,9 @@ export default function MobileFileList({
   selectedFiles,
   onSelectFile,
   isTrash,
-  selectedSection
+  selectedSection,
+  breadcrumb,
+  onBreadcrumbClick
 }: MobileFileListProps) {
   const [sortBy, setSortBy] = useState('date');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -95,7 +99,7 @@ export default function MobileFileList({
       {/* 排序和选择栏 */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-semibold text-gray-900 dark:text-white">
-          {isTrash ? '回收站' : selectedSection === 'recent' ? '最近文件' : '文件'}
+          {isTrash ? '回收站' : selectedSection === 'recent' ? '最近文件' : breadcrumb[breadcrumb.length - 1].name}
         </div>
         {selectedFiles.size > 0 && (
           <div className="flex items-center gap-2">

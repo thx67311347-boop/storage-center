@@ -1,6 +1,6 @@
 import { FileItem } from '../types';
 import { supabase } from '../../lib/supabase';
-import { getCurrentUser, saveFilesToStorage } from './useFileStorage';
+import { getCurrentUser, saveFilesToStorage, saveFileData, getStorageUsage, deleteFileData } from './useFileStorage';
 
 // 文件操作相关的自定义hook
 export const useFileOperations = () => {
@@ -8,50 +8,140 @@ export const useFileOperations = () => {
   const handleFilesUploaded = async (uploadedFiles: File[], currentFolder: string | null, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void) => {
     try {
       const currentUser = getCurrentUser();
-      const newFiles: FileItem[] = [];
-      let totalSize = 0;
+      // 验证文件大小限制（1GB）
+      const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
       
-      // 验证文件大小限制（100MB）
-      const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+      // 检查当前存储使用情况
+      let storageUsage = getStorageUsage();
+      let availableStorage = storageUsage.total - storageUsage.used;
       
-      for (const file of uploadedFiles) {
-        // 检查文件大小
+      // 过滤掉超过大小限制的文件
+      const validFiles = uploadedFiles.filter(file => {
         if (file.size > MAX_FILE_SIZE) {
-          alert(`文件 "${file.name}" 超过了100MB的大小限制，无法上传。`);
-          continue;
+          alert(`文件 "${file.name}" 超过了1GB的大小限制，无法上传。`);
+          return false;
         }
         
-        // 创建文件对象URL用于本地预览
-        const fileUrl = URL.createObjectURL(file);
+        // 检查文件大小是否可能超出存储限制（5GB，考虑base64编码会增加33%的大小）
+        const estimatedStorageSize = file.size * 1.33;
+        if (estimatedStorageSize > 5 * 1024 * 1024 * 1024) {
+          // 对于大文件，仍然允许上传，但会提示用户可能的存储限制
+          if (!confirm(`文件 "${file.name}" 较大，可能超出存储限制。\n\n存储限制为5GB，此文件经过base64编码后可能会占用 ${(estimatedStorageSize / (1024 * 1024 * 1024)).toFixed(2)}GB 存储空间。\n\n确定要继续上传吗？`)) {
+            return false;
+          }
+        }
         
-        const newFile: FileItem = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          lastModified: file.lastModified,
-          url: fileUrl,
-          parentId: currentFolder,
-          isFolder: false,
-          userId: currentUser
-        };
+        // 检查存储是否足够
+        if (estimatedStorageSize > availableStorage) {
+          // 对于大文件，仍然允许用户尝试上传，即使可能超出存储限制
+          if (!confirm(`文件 "${file.name}" 较大，可能超出当前可用存储空间。\n\n当前可用存储空间: ${(availableStorage / (1024 * 1024)).toFixed(2)}MB\n文件编码后大小: ${(estimatedStorageSize / (1024 * 1024)).toFixed(2)}MB\n\n确定要继续上传吗？`)) {
+            return false;
+          }
+        }
         
-        newFiles.push(newFile);
-        totalSize += file.size;
+        return true;
+      });
+      
+      if (validFiles.length === 0) {
+        return;
       }
       
-      if (newFiles.length > 0) {
-        const updatedFiles = [...files, ...newFiles];
-        updateFiles(updatedFiles);
-        updateUsedStorage(totalSize);
-        saveFilesToStorage(updatedFiles);
+      // 检查总存储需求
+      const totalEstimatedSize = validFiles.reduce((sum, file) => sum + (file.size * 1.33), 0);
+      if (totalEstimatedSize > availableStorage) {
+        // 对于大文件，仍然允许用户尝试上传，即使可能超出存储限制
+        if (!confirm(`所选文件总大小可能超出当前可用存储空间。\n\n当前可用存储空间: ${(availableStorage / (1024 * 1024)).toFixed(2)}MB\n文件编码后总大小: ${(totalEstimatedSize / (1024 * 1024)).toFixed(2)}MB\n\n确定要继续上传吗？`)) {
+          return;
+        }
+      }
+      
+      // 处理所有文件上传
+      const filePromises = validFiles.map(async (file) => {
+        try {
+          // 重新检查存储使用情况，确保其他操作没有占用空间
+          const currentStorageUsage = getStorageUsage();
+          const currentAvailableStorage = currentStorageUsage.total - currentStorageUsage.used;
+          
+          const estimatedStorageSize = file.size * 1.33;
+          if (estimatedStorageSize > currentAvailableStorage) {
+            alert(`文件 "${file.name}" 上传时存储空间不足，无法上传。`);
+            return null;
+          }
+          
+          // 生成文件ID
+          const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+          
+          // 使用FileReader将文件转换为base64格式
+          const fileData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (e.target?.result) {
+                resolve(e.target.result as string);
+              } else {
+                reject(new Error('文件读取失败'));
+              }
+            };
+            reader.onerror = () => reject(new Error('文件读取失败'));
+            reader.readAsDataURL(file);
+          });
+          
+          // 保存文件数据到localStorage
+          const saveSuccess = saveFileData(fileId, fileData);
+          
+          if (!saveSuccess) {
+            alert(`文件 "${file.name}" 存储失败，可能是存储空间不足。`);
+            return null;
+          }
+          
+          // 创建文件对象
+          const newFile: FileItem = {
+            id: fileId,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+            url: `data:${file.type};base64,${fileData.split(',')[1]}`, // 使用base64 URL
+            parentId: currentFolder,
+            isFolder: false,
+            userId: currentUser
+          };
+          
+          return newFile;
+        } catch (error) {
+          console.error(`Error uploading file ${file.name}:`, error);
+          const errorMessage = error instanceof Error ? error.message : '未知错误';
+          alert(`文件 "${file.name}" 上传失败: ${errorMessage}`);
+          return null;
+        }
+      });
+      
+      // 等待所有文件处理完成
+      const fileResults = await Promise.all(filePromises);
+      const successfulFiles = fileResults.filter((file): file is FileItem => file !== null);
+      const totalUploadedSize = successfulFiles.reduce((sum, file) => sum + file.size, 0);
+      
+      if (successfulFiles.length > 0) {
+        const updatedFiles = [...files, ...successfulFiles];
         
-        // 显示成功提示
-        alert(`成功上传 ${newFiles.length} 个文件！`);
+        // 保存文件列表
+        const saveSuccess = saveFilesToStorage(updatedFiles);
+        
+        if (saveSuccess) {
+          updateFiles(updatedFiles);
+          updateUsedStorage(totalUploadedSize);
+          // 显示成功提示
+          alert(`成功上传 ${successfulFiles.length} 个文件！`);
+        } else {
+          // 显示存储警告
+          alert(`部分文件已上传，但文件列表存储失败，可能会丢失文件信息。建议清理存储空间后重试。`);
+        }
+      } else {
+        alert('没有文件上传成功，请检查存储空间是否足够。');
       }
     } catch (error) {
       console.error('Error uploading files:', error);
-      alert('文件上传失败，请重试。');
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`文件上传失败: ${errorMessage}\n请检查存储空间是否足够，或尝试上传较小的文件。`);
     }
   };
 
@@ -81,6 +171,10 @@ export const useFileOperations = () => {
           console.error('Error revoking object URL:', error);
         }
       }
+      // 从localStorage中删除文件数据
+      if (isFromTrash) {
+        deleteFileData(fileId);
+      }
     }
     
     try {
@@ -108,6 +202,8 @@ export const useFileOperations = () => {
       }
     } catch (error) {
       console.error('Error deleting file:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`文件删除失败: ${errorMessage}`);
     }
     
     let updatedFiles;
@@ -143,6 +239,10 @@ export const useFileOperations = () => {
             console.error('Error revoking object URL:', error);
           }
         }
+        // 从localStorage中删除文件数据
+        if (isFromTrash) {
+          deleteFileData(fileId);
+        }
       }
     });
     
@@ -153,7 +253,7 @@ export const useFileOperations = () => {
     try {
       if (isFromTrash) {
         // 在回收站中，彻底删除多个文件 - 使用循环逐个删除
-        for (const fileId of fileIds) {
+        for (let fileId of fileIds) {
           const { error: dbError } = await supabase
             .from('files')
             .delete()
@@ -178,6 +278,8 @@ export const useFileOperations = () => {
       }
     } catch (error) {
       console.error('Error deleting multiple files:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`文件删除失败: ${errorMessage}`);
     }
     
     let updatedFiles;
@@ -211,6 +313,8 @@ export const useFileOperations = () => {
       }
     } catch (error) {
       console.error('Error renaming file:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`文件重命名失败: ${errorMessage}`);
     }
     
     const updatedFiles = files.map(file => {
@@ -242,6 +346,8 @@ export const useFileOperations = () => {
       }
     } catch (error) {
       console.error('Error restoring file:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`文件恢复失败: ${errorMessage}`);
     }
     
     const updatedFiles = files.map(file => {
@@ -269,11 +375,17 @@ export const useFileOperations = () => {
         URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Error downloading file:', error);
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        alert(`文件下载失败: ${errorMessage}`);
         // 回退到原始方法
-        const link = document.createElement('a');
-        link.href = file.url;
-        link.download = file.name;
-        link.click();
+        try {
+          const link = document.createElement('a');
+          link.href = file.url;
+          link.download = file.name;
+          link.click();
+        } catch (fallbackError) {
+          console.error('Error with fallback download:', fallbackError);
+        }
       }
     }
   };
@@ -320,21 +432,33 @@ export const useFileOperations = () => {
       }
     } catch (error) {
       console.error('Error creating folder:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`文件夹创建失败: ${errorMessage}\n正在尝试本地创建...`);
       // 使用本地处理作为回退
-      const currentUser = getCurrentUser();
-      const newFolder: FileItem = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: folderName,
-        type: 'folder',
-        size: 0,
-        lastModified: Date.now(),
-        isFolder: true,
-        parentId: currentFolder,
-        userId: currentUser
-      };
-      const updatedFiles = [...files, newFolder];
-      saveFilesToStorage(updatedFiles);
-      updateFiles(updatedFiles);
+      try {
+        const currentUser = getCurrentUser();
+        const newFolder: FileItem = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          name: folderName,
+          type: 'folder',
+          size: 0,
+          lastModified: Date.now(),
+          isFolder: true,
+          parentId: currentFolder,
+          userId: currentUser
+        };
+        const updatedFiles = [...files, newFolder];
+        const saveSuccess = saveFilesToStorage(updatedFiles);
+        if (saveSuccess) {
+          updateFiles(updatedFiles);
+          alert('文件夹已在本地创建成功！');
+        } else {
+          alert('本地创建文件夹失败，可能是存储空间不足。');
+        }
+      } catch (fallbackError) {
+        console.error('Error with fallback folder creation:', fallbackError);
+        alert('本地创建文件夹也失败了，请检查存储空间是否足够。');
+      }
     }
   };
 

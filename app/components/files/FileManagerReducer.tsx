@@ -54,8 +54,8 @@ export const initialState: FileManagerState = {
   selectedFileForShare: null,
   selectedFiles: new Set(),
   selectedFilesForShare: [],
-  usedStorage: 1024 * 1024 * 100, // 100MB
-  totalStorage: 5 * 1024 * 1024 * 1024, // 5GB
+  usedStorage: 0, // 初始化为0，将从实际存储使用情况获取
+  totalStorage: 5 * 1024 * 1024 * 1024, // 5GB 存储限制
   currentFolder: null,
   breadcrumb: [{ id: null, name: '主页' }],
   searchQuery: '',

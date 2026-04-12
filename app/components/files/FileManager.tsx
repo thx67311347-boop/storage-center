@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from 'react';
+import React, { useReducer, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MobileLayout from '../layout/MobileLayout';
 import VirtualFileList from './VirtualFileList';
@@ -9,6 +9,7 @@ import ShareModal from './ShareModal';
 import UserManualModal from '../modals/UserManualModal';
 import Breadcrumb from '../layout/Breadcrumb';
 import FileActions from './FileActions';
+import DownloadProgress from '../ui/DownloadProgress';
 import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
@@ -18,8 +19,13 @@ export default function FileManager() {
   const router = useRouter();
   const [state, dispatch] = useReducer(fileManagerReducer, initialState);
   
+  // 下载进度状态
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadingFileName, setDownloadingFileName] = useState('');
+  
   // 初始化自定义hooks
-  const { loadFilesFromStorage, saveFilesToStorage } = useFileStorage();
+  const { loadFilesFromStorage, saveFilesToStorage, getStorageUsage } = useFileStorage();
   const {
     handleFilesUploaded,
     handleFileDelete,
@@ -68,6 +74,19 @@ export default function FileManager() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // 初始化存储使用量
+  useEffect(() => {
+    const updateStorageUsage = () => {
+      const storageUsage = getStorageUsage();
+      dispatch({ type: 'SET_USED_STORAGE', payload: storageUsage.storageCenterUsed });
+    };
+
+    updateStorageUsage();
+    // 监听存储变化，以便在其他标签页修改存储时更新
+    window.addEventListener('storage', updateStorageUsage);
+    return () => window.removeEventListener('storage', updateStorageUsage);
+  }, [getStorageUsage]);
+
   // 获取当前登录用户
   const getCurrentUser = () => {
     return localStorage.getItem('currentUser') || 'anonymous';
@@ -98,12 +117,12 @@ export default function FileManager() {
   }, [router]);
 
   const handleFilesUploadedWrapper = async (uploadedFiles: File[]) => {
-    // 检查是否有大文件（超过100MB）
-    const largeFiles = uploadedFiles.filter(file => file.size > 100 * 1024 * 1024);
+    // 检查是否有大文件（超过1GB）
+    const largeFiles = uploadedFiles.filter(file => file.size > 1024 * 1024 * 1024);
     if (largeFiles.length > 0) {
-      alert(`文件 "${largeFiles[0].name}" 超过了100MB的大小限制，无法上传。`);
+      alert(`文件 "${largeFiles[0].name}" 超过了1GB的大小限制，无法上传。`);
       // 过滤掉大文件，只上传符合大小限制的文件
-      uploadedFiles = uploadedFiles.filter(file => file.size <= 100 * 1024 * 1024);
+      uploadedFiles = uploadedFiles.filter(file => file.size <= 1024 * 1024 * 1024);
       if (uploadedFiles.length === 0) {
         return;
       }
@@ -132,16 +151,65 @@ export default function FileManager() {
     dispatch({ type: 'SET_SELECTED_FILE', payload: null });
   };
 
-  const handleDownloadFile = () => {
+  const handleDownloadFile = async () => {
     if (!selectedFile) return;
     
     if (selectedFile.url && selectedFile.url !== '#' && selectedFile.url !== '') {
-      const link = document.createElement('a');
-      link.href = selectedFile.url;
-      link.download = selectedFile.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        // 设置下载状态
+        setIsDownloading(true);
+        setDownloadProgress(0);
+        setDownloadingFileName(selectedFile.name);
+        
+        // 使用XMLHttpRequest来监控下载进度
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', selectedFile.url, true);
+        xhr.responseType = 'blob';
+        
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            setDownloadProgress(percentComplete);
+          }
+        };
+        
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const blob = xhr.response;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = selectedFile.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }
+          
+          // 重置下载状态
+          setTimeout(() => {
+            setIsDownloading(false);
+            setDownloadProgress(0);
+            setDownloadingFileName('');
+          }, 1000);
+        };
+        
+        xhr.onerror = () => {
+          // 重置下载状态
+          setIsDownloading(false);
+          setDownloadProgress(0);
+          setDownloadingFileName('');
+          alert('文件下载失败，请重试。');
+        };
+        
+        xhr.send();
+      } catch (error) {
+        console.error('Error downloading file:', error);
+        setIsDownloading(false);
+        setDownloadProgress(0);
+        setDownloadingFileName('');
+        alert('文件下载失败，请重试。');
+      }
     } else {
       alert('此文件无法下载，请重新上传文件后再试。');
     }
@@ -220,8 +288,8 @@ export default function FileManager() {
   };
 
   const handleSettingsClick = () => {
-    // 处理设置按钮点击
-    alert('设置页面功能开发中');
+    // 处理设置按钮点击，导航到设置页面
+    router.push('/settings');
   };
 
   // 处理文件分享
@@ -342,6 +410,7 @@ export default function FileManager() {
         breadcrumb={breadcrumb}
         onBreadcrumbClick={handleBreadcrumbClick}
         isMobile={isMobile}
+        onFloatingButtonClick={() => dispatch({ type: 'SET_CREATE_FOLDER_MODAL', payload: true })}
       >
         <div className="space-y-6">
           {!isMobile && (
@@ -418,6 +487,11 @@ export default function FileManager() {
       <UserManualModal 
         isOpen={isUserManualModalOpen} 
         onClose={() => dispatch({ type: 'SET_USER_MANUAL_MODAL', payload: false })} 
+      />
+      <DownloadProgress 
+        isDownloading={isDownloading} 
+        progress={downloadProgress} 
+        fileName={downloadingFileName} 
       />
     </>
   );

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from './components/layout/Navbar';
-import Sidebar from './components/layout/Sidebar';
+import MobileLayout from './components/layout/MobileLayout';
 import FileUploader from './components/FileUploader';
 import FileList from './components/files/FileList';
+import MobileFileList from './components/files/MobileFileList';
 import FilePreview from './components/FilePreview';
 import CreateFolderModal from './components/modals/CreateFolderModal';
 import ShareModal from './components/files/ShareModal';
@@ -31,6 +31,17 @@ export default function Home() {
   const [breadcrumb, setBreadcrumb] = useState<{id: string | null, name: string}[]>([{id: null, name: '主页'}]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // 获取当前登录用户
   const getCurrentUser = () => {
@@ -689,72 +700,75 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 flex flex-col">
-      <Navbar 
-        onSearch={handleSearch} 
-        onClearSearch={handleClearSearch} 
-        searchQuery={searchQuery} 
+    <>
+      <MobileLayout
+        selectedSection={selectedSection}
+        onSectionSelect={setSelectedSection}
+        onSettingsClick={handleSettingsClick}
+        usedStorage={usedStorage}
+        totalStorage={totalStorage}
+        onSearch={handleSearch}
+        onClearSearch={handleClearSearch}
+        searchQuery={searchQuery}
         onLogout={handleLogout}
         onOpenUserManual={() => setIsUserManualModalOpen(true)}
-      />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          selectedSection={selectedSection} 
-          onSectionSelect={setSelectedSection}
-          onSettingsClick={handleSettingsClick}
-          usedStorage={usedStorage}
-          totalStorage={totalStorage}
-        />
-        <main 
-          className="flex-1 overflow-y-auto p-4 md:p-6 relative"
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          {isDragging && (
-            <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-dashed border-blue-500 flex items-center justify-center z-10 rounded-xl">
-              <div className="text-center bg-white dark:bg-gray-900 p-8 rounded-xl shadow-lg">
-                <Icon name="upload" size={48} className="text-blue-600 mx-auto mb-4" />
-                <p className="text-blue-600 font-medium text-lg">拖拽文件到此处上传</p>
-              </div>
-            </div>
-          )}
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* 页面标题和面包屑 */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-4 md:p-6">
-              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-                {breadcrumb.map((item, index) => (
-                  <React.Fragment key={item.id || 'root'}>
+      >
+        <div className="space-y-6">
+          {!isMobile && (
+            <>
+              {/* 页面标题和面包屑 */}
+              <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-4 md:p-6">
+                <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                  {breadcrumb.map((item, index) => (
+                    <React.Fragment key={item.id || 'root'}>
+                      <button
+                        onClick={() => handleBreadcrumbClick(index)}
+                        className={`text-sm ${index === breadcrumb.length - 1 ? 'font-semibold text-gray-900 dark:text-white' : 'text-blue-600 dark:text-blue-400 hover:underline'}`}
+                      >
+                        {item.name}
+                      </button>
+                      {index < breadcrumb.length - 1 && (
+                        <Icon name="sort" size={16} className="text-gray-400 flex-shrink-0 transform rotate-90" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{breadcrumb[breadcrumb.length - 1].name}</h2>
+                  <div className="flex items-center gap-3">
                     <button
-                      onClick={() => handleBreadcrumbClick(index)}
-                      className={`text-sm ${index === breadcrumb.length - 1 ? 'font-semibold text-gray-900 dark:text-white' : 'text-blue-600 dark:text-blue-400 hover:underline'}`}
+                      onClick={() => setIsCreateFolderModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-sm hover:shadow text-sm md:text-base"
                     >
-                      {item.name}
+                      <Icon name="plus" size={18} color="white" />
+                      <span className="md:inline hidden">新建</span>
+                      <span className="hidden md:inline">新建文件夹</span>
                     </button>
-                    {index < breadcrumb.length - 1 && (
-                      <Icon name="sort" size={16} className="text-gray-400 flex-shrink-0 transform rotate-90" />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{breadcrumb[breadcrumb.length - 1].name}</h2>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setIsCreateFolderModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-sm hover:shadow text-sm md:text-base"
-                  >
-                    <Icon name="plus" size={18} color="white" />
-                    <span className="md:inline hidden">新建</span>
-                    <span className="hidden md:inline">新建文件夹</span>
-                  </button>
-                  <FileUploader onFilesUploaded={handleFilesUploaded} />
+                    <FileUploader onFilesUploaded={handleFilesUploaded} />
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {/* 文件列表 */}
+            </>
+          )}
+          
+          {/* 文件列表 */}
+          {isMobile ? (
+            <MobileFileList 
+              files={getCurrentFiles()}
+              onFileClick={handleFileClick}
+              onFileDelete={handleFileDelete}
+              onFileDownload={handleFileDownload}
+              onFileRename={handleFileRename}
+              onFileRestore={handleFileRestore}
+              onFileShare={handleFileShare}
+              onMultiFileShare={handleMultiFileShare}
+              onMultiFileDelete={handleMultiFileDelete}
+              selectedFiles={selectedFiles}
+              onSelectFile={handleSelectFile}
+              isTrash={selectedSection === 'trash'}
+              selectedSection={selectedSection}
+            />
+          ) : (
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
               <FileList 
                 files={getCurrentFiles()}
@@ -771,9 +785,9 @@ export default function Home() {
                 isTrash={selectedSection === 'trash'}
               />
             </div>
-          </div>
-        </main>
-      </div>
+          )}
+        </div>
+      </MobileLayout>
       {selectedFile && (
         <FilePreview 
           file={selectedFile} 
@@ -796,6 +810,6 @@ export default function Home() {
         isOpen={isUserManualModalOpen} 
         onClose={() => setIsUserManualModalOpen(false)} 
       />
-    </div>
+    </>
   );
 }

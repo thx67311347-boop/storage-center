@@ -263,6 +263,41 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
     );
   }
 
+  if (name === 'audio') {
+    const audioImagePath = "/audio-icon.webp";
+    
+    if (onClick) {
+      return (
+        <button
+          onClick={onClick}
+          className={`inline-flex items-center justify-center ${className}`}
+          style={iconStyles}
+          aria-label={name}
+        >
+          <img
+            src={audioImagePath}
+            alt="audio"
+            width={size}
+            height={size}
+            style={{ objectFit: 'contain' }}
+          />
+        </button>
+      );
+    }
+
+    return (
+      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
+        <img
+          src={audioImagePath}
+          alt="audio"
+          width={size}
+          height={size}
+          style={{ objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
+
   if (onClick) {
     return (
       <button

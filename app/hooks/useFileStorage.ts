@@ -136,17 +136,7 @@ export const saveFileData = (fileId: string, fileData: string): boolean => {
   try {
     const storageKey = getFileDataStorageKey(fileId);
     
-    // 检查文件数据大小
-    const dataSize = new Blob([fileData]).size;
-    
-    // 检查当前存储使用情况
-    const storageUsage = getStorageUsage();
-    const availableStorage = storageUsage.total - storageUsage.used;
-    if (dataSize > availableStorage) {
-      console.warn('Not enough storage space available for file data');
-      return false;
-    }
-    
+    // 直接尝试保存，让浏览器自然处理配额限制
     localStorage.setItem(storageKey, fileData);
     return true;
   } catch (error) {

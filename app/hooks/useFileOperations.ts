@@ -8,37 +8,15 @@ export const useFileOperations = () => {
   const handleFilesUploaded = async (uploadedFiles: File[], currentFolder: string | null, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void) => {
     try {
       const currentUser = getCurrentUser();
-      // 验证文件大小限制（1GB）
-      const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
-      
-      // 检查当前存储使用情况
-      let storageUsage = getStorageUsage();
-      let availableStorage = storageUsage.total - storageUsage.used;
+      // 验证文件大小限制（设置一个合理的限制，比如10MB）
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       
       // 过滤掉超过大小限制的文件
       const validFiles = uploadedFiles.filter(file => {
         if (file.size > MAX_FILE_SIZE) {
-          alert(`文件 "${file.name}" 超过了1GB的大小限制，无法上传。`);
+          alert(`文件 "${file.name}" 超过了10MB的大小限制，无法上传。\n\n提示：localStorage的容量有限，建议上传较小的文件。`);
           return false;
         }
-        
-        // 检查文件大小是否可能超出存储限制（5GB，考虑base64编码会增加33%的大小）
-        const estimatedStorageSize = file.size * 1.33;
-        if (estimatedStorageSize > 5 * 1024 * 1024 * 1024) {
-          // 对于大文件，仍然允许上传，但会提示用户可能的存储限制
-          if (!confirm(`文件 "${file.name}" 较大，可能超出存储限制。\n\n存储限制为5GB，此文件经过base64编码后可能会占用 ${(estimatedStorageSize / (1024 * 1024 * 1024)).toFixed(2)}GB 存储空间。\n\n确定要继续上传吗？`)) {
-            return false;
-          }
-        }
-        
-        // 检查存储是否足够
-        if (estimatedStorageSize > availableStorage) {
-          // 对于大文件，仍然允许用户尝试上传，即使可能超出存储限制
-          if (!confirm(`文件 "${file.name}" 较大，可能超出当前可用存储空间。\n\n当前可用存储空间: ${(availableStorage / (1024 * 1024)).toFixed(2)}MB\n文件编码后大小: ${(estimatedStorageSize / (1024 * 1024)).toFixed(2)}MB\n\n确定要继续上传吗？`)) {
-            return false;
-          }
-        }
-        
         return true;
       });
       
@@ -46,28 +24,9 @@ export const useFileOperations = () => {
         return;
       }
       
-      // 检查总存储需求
-      const totalEstimatedSize = validFiles.reduce((sum, file) => sum + (file.size * 1.33), 0);
-      if (totalEstimatedSize > availableStorage) {
-        // 对于大文件，仍然允许用户尝试上传，即使可能超出存储限制
-        if (!confirm(`所选文件总大小可能超出当前可用存储空间。\n\n当前可用存储空间: ${(availableStorage / (1024 * 1024)).toFixed(2)}MB\n文件编码后总大小: ${(totalEstimatedSize / (1024 * 1024)).toFixed(2)}MB\n\n确定要继续上传吗？`)) {
-          return;
-        }
-      }
-      
       // 处理所有文件上传
       const filePromises = validFiles.map(async (file) => {
         try {
-          // 重新检查存储使用情况，确保其他操作没有占用空间
-          const currentStorageUsage = getStorageUsage();
-          const currentAvailableStorage = currentStorageUsage.total - currentStorageUsage.used;
-          
-          const estimatedStorageSize = file.size * 1.33;
-          if (estimatedStorageSize > currentAvailableStorage) {
-            alert(`文件 "${file.name}" 上传时存储空间不足，无法上传。`);
-            return null;
-          }
-          
           // 生成文件ID
           const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
           
@@ -89,7 +48,7 @@ export const useFileOperations = () => {
           const saveSuccess = saveFileData(fileId, fileData);
           
           if (!saveSuccess) {
-            alert(`文件 "${file.name}" 存储失败，可能是存储空间不足。`);
+            alert(`文件 "${file.name}" 存储失败，localStorage空间不足。\n\n提示：请清理存储空间或上传更小的文件。`);
             return null;
           }
           

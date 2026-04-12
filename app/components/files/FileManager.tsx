@@ -117,17 +117,7 @@ export default function FileManager() {
   }, [router]);
 
   const handleFilesUploadedWrapper = async (uploadedFiles: File[]) => {
-    // 检查是否有大文件（超过1GB）
-    const largeFiles = uploadedFiles.filter(file => file.size > 1024 * 1024 * 1024);
-    if (largeFiles.length > 0) {
-      alert(`文件 "${largeFiles[0].name}" 超过了1GB的大小限制，无法上传。`);
-      // 过滤掉大文件，只上传符合大小限制的文件
-      uploadedFiles = uploadedFiles.filter(file => file.size <= 1024 * 1024 * 1024);
-      if (uploadedFiles.length === 0) {
-        return;
-      }
-    }
-    
+    // 实际的文件大小检查已经在handleFilesUploaded中进行，这里直接调用
     await handleFilesUploaded(
       uploadedFiles,
       currentFolder,

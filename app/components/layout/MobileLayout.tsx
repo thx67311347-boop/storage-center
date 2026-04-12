@@ -19,6 +19,7 @@ interface MobileLayoutProps {
   onOpenUserManual?: () => void;
   breadcrumb?: {id: string | null, name: string}[];
   onBreadcrumbClick?: (index: number) => void;
+  isMobile: boolean;
 }
 
 export default function MobileLayout({
@@ -34,20 +35,10 @@ export default function MobileLayout({
   onLogout,
   onOpenUserManual,
   breadcrumb,
-  onBreadcrumbClick
+  onBreadcrumbClick,
+  isMobile
 }: MobileLayoutProps) {
-  const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const mobileSections = [
     { id: 'all', name: '首页', icon: 'folder' },

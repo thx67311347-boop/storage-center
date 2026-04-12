@@ -714,6 +714,7 @@ export default function Home() {
         onOpenUserManual={() => setIsUserManualModalOpen(true)}
         breadcrumb={breadcrumb}
         onBreadcrumbClick={handleBreadcrumbClick}
+        isMobile={isMobile}
       >
         <div className="space-y-6">
           {!isMobile && (

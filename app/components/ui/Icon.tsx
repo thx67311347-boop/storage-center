@@ -14,20 +14,18 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
   const getIconPath = (iconName: string) => {
     switch (iconName) {
       case 'folder':
-        return (
-          <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2l2 2h8l2-2h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
-        );
+        return null;
       case 'file':
         return (
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" />
         );
       case 'image':
         return (
-          <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
         );
       case 'video':
         return (
-          <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
         );
       case 'audio':
         return (
@@ -35,19 +33,19 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
         );
       case 'pdf':
         return (
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" />
         );
       case 'document':
         return (
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" />
         );
       case 'sheet':
         return (
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" />
         );
       case 'zip':
         return (
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <path d="M21 15v4c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-4" />
         );
       case 'clock':
         return (
@@ -115,7 +113,7 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
         );
       default:
         return (
-          <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2l2 2h8l2-2h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
+          <path d="M20 20H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h5l2 2h7c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2z" />
         );
     }
   };
@@ -124,6 +122,41 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
     ...(size ? { width: `${size}px`, height: `${size}px` } : {}),
     ...(color ? { color } : {})
   };
+
+  if (name === 'folder') {
+    const folderImagePath = "/folder-icon.png";
+    
+    if (onClick) {
+      return (
+        <button
+          onClick={onClick}
+          className={`inline-flex items-center justify-center ${className}`}
+          style={iconStyles}
+          aria-label={name}
+        >
+          <img
+            src={folderImagePath}
+            alt="folder"
+            width={size}
+            height={size}
+            style={{ objectFit: 'contain' }}
+          />
+        </button>
+      );
+    }
+
+    return (
+      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
+        <img
+          src={folderImagePath}
+          alt="folder"
+          width={size}
+          height={size}
+          style={{ objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
 
   if (onClick) {
     return (

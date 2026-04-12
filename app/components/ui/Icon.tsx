@@ -228,6 +228,41 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
     );
   }
 
+  if (name === 'video') {
+    const videoImagePath = "/video-icon.jpg";
+    
+    if (onClick) {
+      return (
+        <button
+          onClick={onClick}
+          className={`inline-flex items-center justify-center ${className}`}
+          style={iconStyles}
+          aria-label={name}
+        >
+          <img
+            src={videoImagePath}
+            alt="video"
+            width={size}
+            height={size}
+            style={{ objectFit: 'contain' }}
+          />
+        </button>
+      );
+    }
+
+    return (
+      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
+        <img
+          src={videoImagePath}
+          alt="video"
+          width={size}
+          height={size}
+          style={{ objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
+
   if (onClick) {
     return (
       <button

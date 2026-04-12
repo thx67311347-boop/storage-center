@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface IconProps {
   name: string;
@@ -9,6 +9,145 @@ interface IconProps {
   color?: string;
   onClick?: () => void;
 }
+
+interface LazyImageProps {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  className?: string;
+  onClick?: () => void;
+}
+
+const LazyImage: React.FC<LazyImageProps> = ({ src, alt, width, height, className = '', onClick }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const imgElement = document.getElementById(`lazy-img-${src}`);
+    if (imgElement) {
+      observer.observe(imgElement);
+    }
+
+    return () => {
+      if (imgElement) {
+        observer.unobserve(imgElement);
+      }
+    };
+  }, [src]);
+
+  const handleImageLoad = () => {
+    setIsLoaded(true);
+  };
+
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={`inline-flex items-center justify-center ${className}`}
+        aria-label={alt}
+      >
+        <div
+          id={`lazy-img-${src}`}
+          className="relative"
+          style={{ width: `${width}px`, height: `${height}px` }}
+        >
+          {!isLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded animate-pulse">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={width * 0.6}
+                height={width * 0.6}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-400"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </div>
+          )}
+          {isInView && (
+            <img
+              src={src}
+              alt={alt}
+              width={width}
+              height={height}
+              style={{ 
+                objectFit: 'contain',
+                opacity: isLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease-in-out'
+              }}
+              onLoad={handleImageLoad}
+              loading="lazy"
+            />
+          )}
+        </div>
+      </button>
+    );
+  }
+
+  return (
+    <div className={`inline-flex items-center justify-center ${className}`}>
+      <div
+        id={`lazy-img-${src}`}
+        className="relative"
+        style={{ width: `${width}px`, height: `${height}px` }}
+      >
+        {!isLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded animate-pulse">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width={width * 0.6}
+              height={width * 0.6}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-400"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </div>
+        )}
+        {isInView && (
+          <img
+            src={src}
+            alt={alt}
+            width={width}
+            height={height}
+            style={{ 
+              objectFit: 'contain',
+              opacity: isLoaded ? 1 : 0,
+              transition: 'opacity 0.3s ease-in-out'
+            }}
+            onLoad={handleImageLoad}
+            loading="lazy"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onClick }) => {
   const getIconPath = (iconName: string) => {
@@ -125,177 +264,27 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
 
   if (name === 'folder') {
     const folderImagePath = "/folder-icon.png";
-    
-    if (onClick) {
-      return (
-        <button
-          onClick={onClick}
-          className={`inline-flex items-center justify-center ${className}`}
-          style={iconStyles}
-          aria-label={name}
-        >
-          <img
-            src={folderImagePath}
-            alt="folder"
-            width={size}
-            height={size}
-            style={{ objectFit: 'contain' }}
-          />
-        </button>
-      );
-    }
-
-    return (
-      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
-        <img
-          src={folderImagePath}
-          alt="folder"
-          width={size}
-          height={size}
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    );
+    return <LazyImage src={folderImagePath} alt="folder" width={size} height={size} className={className} onClick={onClick} />;
   }
 
   if (name === 'image') {
     const imageImagePath = "/image-icon.png";
-    
-    if (onClick) {
-      return (
-        <button
-          onClick={onClick}
-          className={`inline-flex items-center justify-center ${className}`}
-          style={iconStyles}
-          aria-label={name}
-        >
-          <img
-            src={imageImagePath}
-            alt="image"
-            width={size}
-            height={size}
-            style={{ objectFit: 'contain' }}
-          />
-        </button>
-      );
-    }
-
-    return (
-      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
-        <img
-          src={imageImagePath}
-          alt="image"
-          width={size}
-          height={size}
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    );
+    return <LazyImage src={imageImagePath} alt="image" width={size} height={size} className={className} onClick={onClick} />;
   }
 
   if (name === 'document') {
     const documentImagePath = "/document-icon.png";
-    
-    if (onClick) {
-      return (
-        <button
-          onClick={onClick}
-          className={`inline-flex items-center justify-center ${className}`}
-          style={iconStyles}
-          aria-label={name}
-        >
-          <img
-            src={documentImagePath}
-            alt="document"
-            width={size}
-            height={size}
-            style={{ objectFit: 'contain' }}
-          />
-        </button>
-      );
-    }
-
-    return (
-      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
-        <img
-          src={documentImagePath}
-          alt="document"
-          width={size}
-          height={size}
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    );
+    return <LazyImage src={documentImagePath} alt="document" width={size} height={size} className={className} onClick={onClick} />;
   }
 
   if (name === 'video') {
     const videoImagePath = "/video-icon.jpg";
-    
-    if (onClick) {
-      return (
-        <button
-          onClick={onClick}
-          className={`inline-flex items-center justify-center ${className}`}
-          style={iconStyles}
-          aria-label={name}
-        >
-          <img
-            src={videoImagePath}
-            alt="video"
-            width={size}
-            height={size}
-            style={{ objectFit: 'contain' }}
-          />
-        </button>
-      );
-    }
-
-    return (
-      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
-        <img
-          src={videoImagePath}
-          alt="video"
-          width={size}
-          height={size}
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    );
+    return <LazyImage src={videoImagePath} alt="video" width={size} height={size} className={className} onClick={onClick} />;
   }
 
   if (name === 'audio') {
     const audioImagePath = "/audio-icon.webp";
-    
-    if (onClick) {
-      return (
-        <button
-          onClick={onClick}
-          className={`inline-flex items-center justify-center ${className}`}
-          style={iconStyles}
-          aria-label={name}
-        >
-          <img
-            src={audioImagePath}
-            alt="audio"
-            width={size}
-            height={size}
-            style={{ objectFit: 'contain' }}
-          />
-        </button>
-      );
-    }
-
-    return (
-      <div className={`inline-flex items-center justify-center ${className}`} style={iconStyles}>
-        <img
-          src={audioImagePath}
-          alt="audio"
-          width={size}
-          height={size}
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    );
+    return <LazyImage src={audioImagePath} alt="audio" width={size} height={size} className={className} onClick={onClick} />;
   }
 
   if (onClick) {

@@ -19,6 +19,8 @@
 - 自动识别文件大小，智能选择存储方式
 - 大文件上传过程稳定可靠
 - 支持大文件（最高1GB）的上传和下载
+- 支持会话密钥认证，解决MFA认证问题
+- 双重认证机制，确保上传稳定性
 
 ### 2. 流式上传技术
 
@@ -88,11 +90,13 @@
 - 网络连接不稳定
 - MEGA服务器暂时不可用
 - 文件大小超过限制
+- MFA认证问题
 
 **解决方案：**
 - 检查网络连接
 - 点击"重试"按钮重新上传
 - 确保文件大小不超过1GB
+- 如果遇到MFA认证问题，系统会自动使用会话密钥认证
 
 ### 2. 上传超时
 
@@ -166,6 +170,11 @@
 1. 克隆代码仓库
 2. 安装依赖：`npm install`
 3. 配置环境变量：在`.env.local`文件中设置MEGA凭证
+   ```
+   MEGA_EMAIL=your_mega_email@example.com
+   MEGA_PASSWORD=your_mega_password
+   MEGA_SESSION_ID=your_mega_session_id (可选，用于绕过MFA)
+   ```
 4. 启动开发服务器：`npm run dev`
 5. 访问：`http://localhost:3000`
 

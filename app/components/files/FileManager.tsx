@@ -162,7 +162,8 @@ export default function FileManager() {
     if (megaFiles.length > 0) {
       setIsUploadingToMega(true);
       try {
-        for (const file of megaFiles) {
+        // 使用forEach替代for...of循环来避免闭包问题
+        await Promise.all(megaFiles.map(async (file) => {
           setIsUploading(true);
           setUploadingFileName(file.name);
           setUploadProgress(0);
@@ -217,7 +218,7 @@ export default function FileManager() {
             // 更新存储使用量
             dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
           }
-        }
+        }));
       } catch (error) {
         console.error('Mega upload failed:', error);
         setUploadError('上传失败，请重试。');

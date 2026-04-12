@@ -40,7 +40,7 @@ export const useMegaStorage = () => {
     }
   }, [isConnected, isLoading, hasAttemptedConnect]);
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const uploadFile = async (file: File, onProgress?: (progress: number) => void): Promise<string | null> => {
     try {
       let connected = isConnected;
       
@@ -64,6 +64,9 @@ export const useMegaStorage = () => {
 
       upload.on('progress', (progress: number) => {
         console.log(`Mega upload progress: ${Math.round(progress * 100)}%`);
+        if (onProgress) {
+          onProgress(progress);
+        }
       });
 
       const arrayBuffer = await file.arrayBuffer();

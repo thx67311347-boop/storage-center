@@ -10,6 +10,7 @@ import UserManualModal from '../modals/UserManualModal';
 import Breadcrumb from '../layout/Breadcrumb';
 import FileActions from './FileActions';
 import DownloadProgress from '../ui/DownloadProgress';
+import UploadProgress from '../ui/UploadProgress';
 import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
@@ -24,6 +25,11 @@ export default function FileManager() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadingFileName, setDownloadingFileName] = useState('');
+  
+  // 上传进度状态
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState('');
   
   // 初始化自定义hooks
   const { loadFilesFromStorage, saveFilesToStorage, getStorageUsage } = useFileStorage();
@@ -152,7 +158,14 @@ export default function FileManager() {
       setIsUploadingToMega(true);
       try {
         for (const file of megaFiles) {
-          const megaLink = await uploadFile(file);
+          setIsUploading(true);
+          setUploadingFileName(file.name);
+          setUploadProgress(0);
+          
+          const megaLink = await uploadFile(file, (progress) => {
+            setUploadProgress(Math.round(progress * 100));
+          });
+          
           if (megaLink) {
             // 创建Mega文件项
             const newFile: FileItem = {
@@ -185,6 +198,9 @@ export default function FileManager() {
         alert('大文件上传失败，请重试。');
       } finally {
         setIsUploadingToMega(false);
+        setIsUploading(false);
+        setUploadProgress(0);
+        setUploadingFileName('');
       }
     }
   };
@@ -545,6 +561,11 @@ export default function FileManager() {
         isDownloading={isDownloading} 
         progress={downloadProgress} 
         fileName={downloadingFileName} 
+      />
+      <UploadProgress 
+        isUploading={isUploading} 
+        progress={uploadProgress} 
+        fileName={uploadingFileName} 
       />
     </>
   );

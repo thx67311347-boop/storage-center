@@ -4,6 +4,41 @@ import { getCurrentUser, saveFilesToStorage, saveFileData, getStorageUsage, dele
 
 // 文件操作相关的自定义hook
 export const useFileOperations = () => {
+  // 分块上传文件
+  const uploadFileInChunks = async (file: File): Promise<{fileId: string; fileData: string}> => {
+    const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+    const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const chunks: string[] = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      
+      const chunkData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            resolve((e.target.result as string).split(',')[1]); // Only base64 part
+          } else {
+            reject(new Error('文件读取失败'));
+          }
+        };
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsDataURL(chunk);
+      });
+      
+      chunks.push(chunkData);
+    }
+    
+    // 合并所有块
+    const combinedData = chunks.join('');
+    const fileData = `data:${file.type};base64,${combinedData}`;
+    
+    return { fileId, fileData };
+  };
+
   // 处理文件上传
   const handleFilesUploaded = async (uploadedFiles: File[], currentFolder: string | null, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void) => {
     try {
@@ -13,28 +48,36 @@ export const useFileOperations = () => {
       // 处理所有文件上传
       const filePromises = validFiles.map(async (file) => {
         try {
-          // 生成文件ID
-          const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+          let fileId: string;
+          let fileData: string;
           
-          // 使用FileReader将文件转换为base64格式
-          const fileData = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              if (e.target?.result) {
-                resolve(e.target.result as string);
-              } else {
-                reject(new Error('文件读取失败'));
-              }
-            };
-            reader.onerror = () => reject(new Error('文件读取失败'));
-            reader.readAsDataURL(file);
-          });
+          // 对于大文件使用分块上传
+          if (file.size > 10 * 1024 * 1024) { // 大于10MB
+            const result = await uploadFileInChunks(file);
+            fileId = result.fileId;
+            fileData = result.fileData;
+          } else {
+            // 小文件直接上传
+            fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            fileData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                if (e.target?.result) {
+                  resolve(e.target.result as string);
+                } else {
+                  reject(new Error('文件读取失败'));
+                }
+              };
+              reader.onerror = () => reject(new Error('文件读取失败'));
+              reader.readAsDataURL(file);
+            });
+          }
           
           // 保存文件数据到localStorage
           const saveSuccess = saveFileData(fileId, fileData);
           
           if (!saveSuccess) {
-            alert(`文件 "${file.name}" 存储失败，localStorage空间不足。\n\n提示：请清理存储空间或上传更小的文件。`);
+            alert(`文件 "${file.name}" 存储失败，localStorage空间不足。\n\n提示：请清理存储空间或使用MEGA存储。`);
             return null;
           }
           
@@ -45,7 +88,7 @@ export const useFileOperations = () => {
             type: file.type,
             size: file.size,
             lastModified: file.lastModified,
-            url: `data:${file.type};base64,${fileData.split(',')[1]}`, // 使用base64 URL
+            url: fileData, // 使用完整的base64 URL
             parentId: currentFolder,
             isFolder: false,
             userId: currentUser

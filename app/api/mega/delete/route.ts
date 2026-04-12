@@ -4,8 +4,8 @@ import { Storage } from 'megajs';
 export async function DELETE(request: NextRequest) {
   try {
     // 检查环境变量
-    const email = process.env.MEGA_EMAIL;
-    const password = process.env.MEGA_PASSWORD;
+    const email = process.env.MEGA_EMAIL || '';
+    const password = process.env.MEGA_PASSWORD || '';
     
     if (!email || !password) {
       return NextResponse.json({ error: 'MEGA credentials not configured' }, { status: 500 });
@@ -18,14 +18,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file link' }, { status: 400 });
     }
 
-    // 连接到MEGA，优先使用会话密钥
+    // 连接到MEGA，使用邮箱密码登录
     const storage = new Storage({
-      sid: process.env.MEGA_SESSION_ID
+      email: email,
+      password: password
     });
 
     await storage.ready;
 
     // 删除文件
+    // @ts-ignore - megajs类型定义不完整
     const file = storage.file(fileLink);
     await file.delete();
 

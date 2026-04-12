@@ -94,7 +94,7 @@ export const fileManagerReducer = (state: FileManagerState, action: FileManagerA
       return { ...state, selectedFilesForShare: action.payload };
     
     case 'SET_USED_STORAGE':
-      return { ...state, usedStorage: action.payload };
+      return { ...state, usedStorage: Math.max(0, action.payload) };
     
     case 'SET_CURRENT_FOLDER':
       return { ...state, currentFolder: action.payload };

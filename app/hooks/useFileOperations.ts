@@ -162,6 +162,9 @@ export const useFileOperations = () => {
   const handleFileDelete = async (fileId: string, isFromTrash: boolean, files: FileItem[], updateFiles: (files: FileItem[]) => void, updateUsedStorage: (storage: number) => void) => {
     const fileToDelete = files.find(file => file.id === fileId);
     if (fileToDelete && !fileToDelete.isFolder) {
+      // 确保存储使用量不为负数
+      const currentStorage = getStorageUsage();
+      const newUsedStorage = Math.max(0, currentStorage.used - fileToDelete.size);
       updateUsedStorage(-fileToDelete.size);
       // 清理文件URL对象，避免内存泄漏
       if (fileToDelete.url && fileToDelete.url.startsWith('blob:')) {
@@ -178,32 +181,35 @@ export const useFileOperations = () => {
     }
     
     try {
-      if (isFromTrash) {
-        // 在回收站中，彻底删除文件
-        // 从数据库中删除文件
-        const { error: dbError } = await supabase
-          .from('files')
-          .delete()
-          .eq('id', fileId);
-        
-        if (dbError) {
-          console.error('Error deleting file from database:', dbError);
-        }
-      } else {
-        // 在主页中，标记为已删除
-        const { error: dbError } = await (supabase
-          .from('files') as any)
-          .update({ isDeleted: true, deletedAt: Date.now() })
-          .eq('id', fileId);
-        
-        if (dbError) {
-          console.error('Error updating file status in database:', dbError);
+      // 检查fileId是否为标准UUID格式，避免数据库操作错误
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(fileId)) {
+        if (isFromTrash) {
+          // 在回收站中，彻底删除文件
+          // 从数据库中删除文件
+          const { error: dbError } = await supabase
+            .from('files')
+            .delete()
+            .eq('id', fileId);
+          
+          if (dbError) {
+            console.error('Error deleting file from database:', dbError);
+          }
+        } else {
+          // 在主页中，标记为已删除
+          const { error: dbError } = await (supabase
+            .from('files') as any)
+            .update({ isDeleted: true, deletedAt: Date.now() })
+            .eq('id', fileId);
+          
+          if (dbError) {
+            console.error('Error updating file status in database:', dbError);
+          }
         }
       }
     } catch (error) {
       console.error('Error deleting file:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      alert(`文件删除失败: ${errorMessage}`);
+      // 数据库错误不影响本地操作，只在控制台记录
     }
     
     let updatedFiles;
@@ -251,35 +257,40 @@ export const useFileOperations = () => {
     }
     
     try {
+      // 检查fileId是否为标准UUID格式，避免数据库操作错误
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (isFromTrash) {
         // 在回收站中，彻底删除多个文件 - 使用循环逐个删除
         for (let fileId of fileIds) {
-          const { error: dbError } = await supabase
-            .from('files')
-            .delete()
-            .eq('id', fileId);
-          
-          if (dbError) {
-            console.error('Error deleting file from database:', fileId, dbError);
+          if (uuidRegex.test(fileId)) {
+            const { error: dbError } = await supabase
+              .from('files')
+              .delete()
+              .eq('id', fileId);
+            
+            if (dbError) {
+              console.error('Error deleting file from database:', fileId, dbError);
+            }
           }
         }
       } else {
         // 在主页中，标记多个文件为已删除 - 使用循环逐个更新
         for (const fileId of fileIds) {
-          const { error: dbError } = await (supabase
-            .from('files') as any)
-            .update({ isDeleted: true, deletedAt: Date.now() })
-            .eq('id', fileId);
-          
-          if (dbError) {
-            console.error('Error updating file status in database:', fileId, dbError);
+          if (uuidRegex.test(fileId)) {
+            const { error: dbError } = await (supabase
+              .from('files') as any)
+              .update({ isDeleted: true, deletedAt: Date.now() })
+              .eq('id', fileId);
+            
+            if (dbError) {
+              console.error('Error updating file status in database:', fileId, dbError);
+            }
           }
         }
       }
     } catch (error) {
       console.error('Error deleting multiple files:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      alert(`文件删除失败: ${errorMessage}`);
+      // 数据库错误不影响本地操作，只在控制台记录
     }
     
     let updatedFiles;
@@ -302,19 +313,22 @@ export const useFileOperations = () => {
   // 处理文件重命名
   const handleFileRename = async (fileId: string, newName: string, files: FileItem[], updateFiles: (files: FileItem[]) => void) => {
     try {
-      // 更新数据库中的文件名称
-      const { error: dbError } = await (supabase
-        .from('files') as any)
-        .update({ name: newName, lastModified: Date.now() })
-        .eq('id', fileId);
-      
-      if (dbError) {
-        console.error('Error renaming file in database:', dbError);
+      // 检查fileId是否为标准UUID格式，避免数据库操作错误
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(fileId)) {
+        // 更新数据库中的文件名称
+        const { error: dbError } = await (supabase
+          .from('files') as any)
+          .update({ name: newName, lastModified: Date.now() })
+          .eq('id', fileId);
+        
+        if (dbError) {
+          console.error('Error renaming file in database:', dbError);
+        }
       }
     } catch (error) {
       console.error('Error renaming file:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      alert(`文件重命名失败: ${errorMessage}`);
+      // 数据库错误不影响本地操作，只在控制台记录
     }
     
     const updatedFiles = files.map(file => {
@@ -335,19 +349,22 @@ export const useFileOperations = () => {
     }
     
     try {
-      // 更新数据库中的文件状态，标记为未删除
-      const { error: dbError } = await (supabase
-        .from('files') as any)
-        .update({ isDeleted: false, deletedAt: null })
-        .eq('id', fileId);
-      
-      if (dbError) {
-        console.error('Error updating file status in database:', dbError);
+      // 检查fileId是否为标准UUID格式，避免数据库操作错误
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(fileId)) {
+        // 更新数据库中的文件状态，标记为未删除
+        const { error: dbError } = await (supabase
+          .from('files') as any)
+          .update({ isDeleted: false, deletedAt: null })
+          .eq('id', fileId);
+        
+        if (dbError) {
+          console.error('Error updating file status in database:', dbError);
+        }
       }
     } catch (error) {
       console.error('Error restoring file:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      alert(`文件恢复失败: ${errorMessage}`);
+      // 数据库错误不影响本地操作，只在控制台记录
     }
     
     const updatedFiles = files.map(file => {

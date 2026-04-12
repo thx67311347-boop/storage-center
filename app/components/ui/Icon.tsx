@@ -159,7 +159,7 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
   }
 
   if (name === 'image') {
-    const imageImagePath = "/image-icon.jpg";
+    const imageImagePath = "/image-icon.png";
     
     if (onClick) {
       return (

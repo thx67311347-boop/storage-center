@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Storage } from 'megajs';
 
 export const useMegaStorage = () => {
   const [megaStorage, setMegaStorage] = useState<any>(null);
@@ -17,23 +18,54 @@ export const useMegaStorage = () => {
   });
   const [memoryUsage, setMemoryUsage] = useState<number | null>(null);
 
+  // 获取MEGA会话密钥
+  const getMegaSession = async (): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/mega/session');
+      if (!response.ok) {
+        throw new Error('Failed to get session');
+      }
+      const data = await response.json();
+      if (data.success && data.sessionId) {
+        console.log('✅ 获取MEGA会话密钥成功');
+        return data.sessionId;
+      }
+      return null;
+    } catch (error) {
+      console.error('❌ 获取MEGA会话密钥失败:', error);
+      return null;
+    }
+  };
+
   const connectToMega = async (): Promise<boolean> => {
-    // 由于我们现在使用本地API，连接将在服务器端处理
-    // 这个函数现在只是返回true，表示API可用
-    setIsConnected(true);
-    setLastConnectionTime(Date.now());
-    console.log('Mega API connected (via local API)');
-    return true;
+    try {
+      const sessionId = await getMegaSession();
+      if (sessionId) {
+        const storage = new Storage({ sid: sessionId });
+        await storage.ready;
+        setMegaStorage(storage);
+        setIsConnected(true);
+        setLastConnectionTime(Date.now());
+        console.log('✅ Mega API connected (via client-side)');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Mega连接失败:', error);
+      setError((error as Error).message);
+      return false;
+    }
   };
 
   // 验证连接状态
   const validateConnection = async (): Promise<boolean> => {
-    // 由于我们现在使用本地API，验证将在服务器端处理
-    // 这个函数现在只是返回true，表示API可用
+    if (!isConnected || !megaStorage) {
+      return await connectToMega();
+    }
     return true;
   };
 
-  // 上传文件的内部函数
+  // 上传文件的内部函数（客户端直传）
   const uploadFileInternal = async (file: File, onProgress?: (progress: number) => void, abortController?: AbortController): Promise<{success: boolean, link: string | null} | null> => {
     // 检查是否已取消
     if (abortController?.signal.aborted) {
@@ -46,28 +78,44 @@ export const useMegaStorage = () => {
     console.log(`Uploading to Mega: ${fileName} (${fileSize} bytes)`);
 
     try {
-      // 创建FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileName', fileName);
-      formData.append('fileSize', fileSize.toString());
-
-      // 发送请求到本地API
-      const response = await fetch('/api/mega/upload', {
-        method: 'POST',
-        body: formData,
-        signal: abortController?.signal
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+      // 确保已连接
+      const connected = await validateConnection();
+      if (!connected) {
+        throw new Error('Not connected to MEGA');
       }
 
-      const result = await response.json();
-      console.log('Raw response:', result);
-      console.log('File uploaded to Mega successfully');
-      return { success: true, link: result.link || null };
+      // 直接上传到MEGA
+      console.log('⬆️ 开始客户端直传...');
+      const upload = megaStorage.upload({
+        name: fileName,
+        size: fileSize
+      });
+
+      // 监听进度
+      if (onProgress) {
+        upload.on('progress', (stats: any) => {
+          const progress = Math.round((stats.bytesLoaded / fileSize) * 100);
+          onProgress(progress);
+        });
+      }
+
+      // 获取Web Stream并转换为Uint8Array
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // 写入数据
+      upload.write(uint8Array);
+      upload.end();
+
+      // 等待上传完成
+      const result = await upload.complete;
+      console.log('✅ 上传成功，文件ID:', result.fileId);
+
+      // 生成分享链接
+      const link = `https://mega.nz/file/${result.fileId}#${result.key.toString('base64url')}`;
+      console.log('分享链接:', link);
+
+      return { success: true, link: link };
     } catch (error) {
       console.error('Mega upload failed:', error);
       setError((error as Error).message);
@@ -158,14 +206,19 @@ export const useMegaStorage = () => {
     try {
       console.log(`Downloading from Mega: ${fileLink}`);
       
-      // 发送请求到本地API
-      const response = await fetch(`/api/mega/download?link=${encodeURIComponent(fileLink)}`);
-
-      if (!response.ok) {
-        throw new Error('Download failed');
+      // 确保已连接
+      const connected = await validateConnection();
+      if (!connected) {
+        throw new Error('Not connected to MEGA');
       }
 
-      const blob = await response.blob();
+      // 直接从MEGA下载
+      // @ts-ignore - megajs类型定义不完整
+      const file = megaStorage.file(fileLink);
+      const buffer = await file.downloadBuffer();
+      const blob = new Blob([buffer]);
+      
+      console.log('✅ 下载成功');
       return blob;
     } catch (err) {
       console.error('Mega download failed:', (err as Error).message);
@@ -178,16 +231,18 @@ export const useMegaStorage = () => {
     try {
       console.log(`Deleting from Mega: ${fileLink}`);
       
-      // 发送请求到本地API
-      const response = await fetch(`/api/mega/delete?link=${encodeURIComponent(fileLink)}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Delete failed');
+      // 确保已连接
+      const connected = await validateConnection();
+      if (!connected) {
+        throw new Error('Not connected to MEGA');
       }
 
-      console.log('File deleted from Mega successfully');
+      // 直接从MEGA删除
+      // @ts-ignore - megajs类型定义不完整
+      const file = megaStorage.file(fileLink);
+      await file.delete();
+      
+      console.log('✅ 删除成功');
       return true;
     } catch (err) {
       console.error('Mega delete failed:', (err as Error).message);
@@ -197,7 +252,7 @@ export const useMegaStorage = () => {
   };
 
   return {
-    megaStorage: null, // 不再需要，所有操作通过本地API处理
+    megaStorage,
     isConnected,
     error,
     isLoading,

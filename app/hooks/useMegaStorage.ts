@@ -41,6 +41,7 @@ export const useMegaStorage = () => {
     try {
       const sessionId = await getMegaSession();
       if (sessionId) {
+        // @ts-ignore - sid is a valid property for megajs storage initialization
         const storage = new Storage({ sid: sessionId });
         await storage.ready;
         setMegaStorage(storage);

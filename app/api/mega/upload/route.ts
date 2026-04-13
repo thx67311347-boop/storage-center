@@ -99,11 +99,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 设置较大的请求体限制
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '1gb', // 支持1GB文件上传
-    },
-  },
-};

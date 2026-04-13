@@ -35,3 +35,6 @@ lerna-debug.log*
 
 # Uploads directory
 /uploads
+
+# Next.js build output
+/.next

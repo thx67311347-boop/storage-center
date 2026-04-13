@@ -16,7 +16,7 @@ import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
 import { useFileOperations } from '../../hooks/useFileOperations';
-import { useMegaStorage } from '../../hooks/useMegaStorage';
+
 
 export default function FileManager() {
   const router = useRouter();
@@ -66,7 +66,7 @@ export default function FileManager() {
     handleCreateFolder,
     cleanupFileUrls
   } = useFileOperations();
-  const { uploadFile, isConnected, isLoading, connectToMega } = useMegaStorage();
+
   
   const [isUploadingToMega, setIsUploadingToMega] = useState(false);
 
@@ -151,56 +151,22 @@ export default function FileManager() {
   }, [router]);
 
   const handleFilesUploadedWrapper = async (uploadedFiles: File[]) => {
-    const MEGA_THRESHOLD = 5 * 1024 * 1024; // 5MB阈值
+    // 所有文件都使用本地存储API上传
+    await handleFilesUploaded(
+      uploadedFiles,
+      currentFolder,
+      files,
+      (updatedFiles) => dispatch({ type: 'SET_FILES', payload: updatedFiles }),
+      (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size }),
+      uploadAbortController || undefined
+    );
     
-    // 分离大文件和小文件
-    const megaFiles: File[] = [];
-    const localFiles: File[] = [];
-    
-    for (const file of uploadedFiles) {
-      if (file.size > MEGA_THRESHOLD) {
-        megaFiles.push(file);
-      } else {
-        localFiles.push(file);
-      }
-    }
-    
-    // 先处理小文件（本地存储）
-    if (localFiles.length > 0) {
-      await handleFilesUploaded(
-        localFiles,
-        currentFolder,
-        files,
-        (updatedFiles) => dispatch({ type: 'SET_FILES', payload: updatedFiles }),
-        (size) => dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + size }),
-        uploadAbortController || undefined
-      );
-    }
-    
-    // 处理大文件（Mega存储）
-    if (megaFiles.length > 0) {
-      setIsUploadingToMega(true);
-      try {
-        // 逐个处理文件
-        for (let i = 0; i < megaFiles.length; i++) {
-          const file = megaFiles[i];
-          await handleMegaFileUpload(file);
-        }
-      } catch (error) {
-        console.error('Mega upload failed:', error);
-        setUploadError('上传失败，请重试。');
-        setTimeout(() => {
-          setUploadError(null);
-        }, 3000);
-      } finally {
-        setIsUploadingToMega(false);
-        setIsUploading(false);
-        setUploadProgress(0);
-        setUploadingFileName('');
-        setUploadStartTime(null);
-        setUploadAbortController(null);
-      }
-    }
+    // 清理上传状态
+    setIsUploading(false);
+    setUploadProgress(0);
+    setUploadingFileName('');
+    setUploadStartTime(null);
+    setUploadAbortController(null);
   };
 
   const handleFileClick = (file: FileItem) => {
@@ -227,30 +193,62 @@ export default function FileManager() {
         setDownloadProgress(0);
         setDownloadingFileName(selectedFile.name);
         
-        // 使用XMLHttpRequest来监控下载进度
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', selectedFile.url, true);
-        xhr.responseType = 'blob';
-        
-        xhr.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = Math.round((e.loaded / e.total) * 100);
-            setDownloadProgress(percentComplete);
-          }
-        };
-        
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            const blob = xhr.response;
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = selectedFile.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }
+        // 检查是否是本地存储文件
+        if (selectedFile.url && selectedFile.url.startsWith('/uploads/')) {
+          // 使用本地存储API下载
+          const fileName = selectedFile.url.replace('/uploads/', '');
+          const downloadUrl = `/api/download?file=${encodeURIComponent(fileName)}&name=${encodeURIComponent(selectedFile.name)}`;
+          
+          // 使用XMLHttpRequest来监控下载进度
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', downloadUrl, true);
+          xhr.responseType = 'blob';
+          
+          xhr.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = Math.round((e.loaded / e.total) * 100);
+              setDownloadProgress(percentComplete);
+            }
+          };
+          
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              const blob = xhr.response;
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = selectedFile.name;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+            }
+            
+            // 重置下载状态
+            setTimeout(() => {
+              setIsDownloading(false);
+              setDownloadProgress(0);
+              setDownloadingFileName('');
+            }, 1000);
+          };
+          
+          xhr.onerror = () => {
+            // 重置下载状态
+            setIsDownloading(false);
+            setDownloadProgress(0);
+            setDownloadingFileName('');
+            alert('文件下载失败，请重试。');
+          };
+          
+          xhr.send();
+        } else {
+          // 直接下载（适用于其他类型的URL）
+          const link = document.createElement('a');
+          link.href = selectedFile.url || '#';
+          link.download = selectedFile.name;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
           
           // 重置下载状态
           setTimeout(() => {
@@ -258,17 +256,7 @@ export default function FileManager() {
             setDownloadProgress(0);
             setDownloadingFileName('');
           }, 1000);
-        };
-        
-        xhr.onerror = () => {
-          // 重置下载状态
-          setIsDownloading(false);
-          setDownloadProgress(0);
-          setDownloadingFileName('');
-          alert('文件下载失败，请重试。');
-        };
-        
-        xhr.send();
+        }
       } catch (error) {
         console.error('Error downloading file:', error);
         setIsDownloading(false);

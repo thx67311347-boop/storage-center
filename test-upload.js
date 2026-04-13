@@ -1,50 +1,82 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import FormData from 'form-data';
-import fetch from 'node-fetch';
+const fs = require('fs');
+const path = require('path');
+const FormData = require('form-data');
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// 使用动态导入获取 fetch
+let fetch;
+async function getFetch() {
+  if (!fetch) {
+    const module = await import('node-fetch');
+    fetch = module.default;
+  }
+  return fetch;
+}
 
 // 创建测试文件
-const testFilePath = path.join(__dirname, 'test-small.txt');
-fs.writeFileSync(testFilePath, 'Hello MEGA test at ' + new Date().toISOString());
+const testFilePath = path.join(__dirname, 'test.txt');
+fs.writeFileSync(testFilePath, 'Test file content');
+console.log('Created test file:', testFilePath);
 
-// 测试上传
+// 测试上传API
 async function testUpload() {
   try {
+    const fetch = await getFetch();
     const formData = new FormData();
-    const file = fs.createReadStream(testFilePath);
+    formData.append('file', fs.createReadStream(testFilePath));
     
-    formData.append('file', file, 'test-small.txt');
-    
-    console.log('测试小文件上传...');
-    console.log('文件路径:', testFilePath);
-    
-    const response = await fetch('http://localhost:3000/api/mega/upload', {
+    const response = await fetch('http://localhost:3000/api/upload', {
       method: 'POST',
       body: formData,
       headers: formData.getHeaders()
     });
     
     const result = await response.json();
-    console.log('响应状态:', response.status);
-    console.log('响应结果:', result);
+    console.log('Upload response:', result);
     
-    if (response.ok && result.success) {
-      console.log('✅ 小文件上传成功！');
-      console.log('分享链接:', result.link);
+    if (result.success) {
+      console.log('✅ Upload test passed!');
+      console.log('File URL:', result.link);
     } else {
-      console.log('❌ 小文件上传失败:', result.error);
+      console.error('❌ Upload test failed:', result.error);
     }
   } catch (error) {
-    console.error('测试失败:', error);
+    console.error('❌ Upload test error:', error);
   } finally {
     // 清理测试文件
     if (fs.existsSync(testFilePath)) {
       fs.unlinkSync(testFilePath);
+      console.log('Cleaned up test file');
     }
   }
 }
 
-testUpload();
+// 测试存储信息API
+async function testStorage() {
+  try {
+    const fetch = await getFetch();
+    const response = await fetch('http://localhost:3000/api/storage');
+    const result = await response.json();
+    console.log('\nStorage info:', result);
+    
+    if (result.success) {
+      console.log('✅ Storage test passed!');
+      console.log('Used storage:', result.storage.used);
+      console.log('Available storage:', result.storage.available);
+      console.log('File count:', result.storage.fileCount);
+    } else {
+      console.error('❌ Storage test failed:', result.error);
+    }
+  } catch (error) {
+    console.error('❌ Storage test error:', error);
+  }
+}
+
+// 运行测试
+async function runTests() {
+  console.log('=== Testing Local Storage API ===');
+  await testUpload();
+  await testStorage();
+  console.log('=== Test completed ===');
+}
+
+runTests();

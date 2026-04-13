@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Storage } from 'megajs';
+import { getMegaStorage } from '@/app/lib/mega-storage';
 
 export async function DELETE(request: NextRequest) {
   try {
-    // 检查环境变量
-    const email = process.env.MEGA_EMAIL || '';
-    const password = process.env.MEGA_PASSWORD || '';
-    
-    if (!email || !password) {
-      return NextResponse.json({ error: 'MEGA credentials not configured' }, { status: 500 });
-    }
-    
     const searchParams = request.nextUrl.searchParams;
     const fileLink = searchParams.get('link');
 
@@ -18,13 +10,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file link' }, { status: 400 });
     }
 
-    // 连接到MEGA，使用邮箱密码登录
-    const storage = new Storage({
-      email: email,
-      password: password
-    });
-
-    await storage.ready;
+    // 使用共享的会话管理
+    const storage = await getMegaStorage();
 
     // 删除文件
     // @ts-ignore - megajs类型定义不完整

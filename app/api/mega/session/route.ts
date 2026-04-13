@@ -1,44 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Storage } from 'megajs';
-
-let cachedStorage: any = null;
-
-async function getMegaStorage() {
-  if (!cachedStorage) {
-    console.log('🔐 正在生成MEGA会话...');
-    const email = process.env.MEGA_EMAIL || '';
-    const password = process.env.MEGA_PASSWORD || '';
-    
-    if (!email || !password) {
-      throw new Error('MEGA credentials not configured');
-    }
-    
-    cachedStorage = await new Storage({
-      email: email,
-      password: password,
-    }).ready;
-    console.log('✅ MEGA会话生成成功');
-  }
-  return cachedStorage;
-}
+import { getMegaStorage } from '@/app/lib/mega-storage';
 
 export async function GET(request: NextRequest) {
   try {
     const storage = await getMegaStorage();
     
-    // 获取会话密钥
-    const sessionId = storage.api.sid;
+    // 修复：使用 storage.sid 而不是 storage.api.sid
+    const sid = storage.sid;
     
-    if (!sessionId) {
-      throw new Error('Failed to get session ID');
+    if (!sid) {
+      return NextResponse.json(
+        { success: false, error: 'No valid MEGA session' },
+        { status: 500 }
+      );
     }
     
-    console.log('📋 生成临时会话密钥:', sessionId);
+    console.log('📋 生成临时会话密钥:', sid);
     
     return NextResponse.json({
       success: true,
-      sessionId: sessionId,
-      expiresAt: new Date(Date.now() + 3600000).toISOString() // 1小时过期
+      sid: sid, // 统一使用 sid 字段名，与 megajs 保持一致
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24小时过期
     });
   } catch (error: any) {
     console.error('❌ 会话生成失败:', error);

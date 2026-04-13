@@ -44,59 +44,44 @@ export const useFileOperations = () => {
       // 处理所有文件上传
       const filePromises = validFiles.map(async (file) => {
         try {
-          let fileId: string;
-          let fileData: string;
-          
-          // 对于大文件使用分块上传
-          if (file.size > 10 * 1024 * 1024) { // 大于10MB
-            const result = await uploadFileInChunks(file, abortController);
-            fileId = result.fileId;
-            fileData = result.fileData;
-          } else {
-            // 小文件直接上传
-            fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-            fileData = await new Promise<string>((resolve, reject) => {
-              // 检查是否已取消
-              if (abortController?.signal.aborted) {
-                reject(new Error('上传已取消'));
-                return;
-              }
-              
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                if (abortController?.signal.aborted) {
-                  reject(new Error('上传已取消'));
-                  return;
-                }
-                if (e.target?.result) {
-                  resolve(e.target.result as string);
-                } else {
-                  reject(new Error('文件读取失败'));
-                }
-              };
-              reader.onerror = () => reject(new Error('文件读取失败'));
-              reader.readAsDataURL(file);
-            });
+          // 检查是否已取消
+          if (abortController?.signal.aborted) {
+            throw new Error('上传已取消');
           }
           
-          // 保存文件数据到localStorage
-          const saveSuccess = saveFileData(fileId, fileData);
+          // 创建FormData对象
+          const formData = new FormData();
+          formData.append('file', file);
           
-          if (!saveSuccess) {
-            alert(`文件 "${file.name}" 存储失败，localStorage空间不足。\n\n提示：请清理存储空间或使用MEGA存储。`);
-            return null;
+          // 调用本地存储API上传文件
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+            signal: abortController?.signal
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`上传失败: ${errorText}`);
+          }
+          
+          const result = await response.json();
+          
+          if (!result.success) {
+            throw new Error(result.error || '上传失败');
           }
           
           // 创建文件对象
           const newFile: FileItem = {
-            id: fileId,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             name: file.name,
             type: file.type,
             size: file.size,
             lastModified: file.lastModified,
-            url: fileData, // 使用完整的base64 URL
+            url: result.link, // 使用API返回的文件URL
             parentId: currentFolder,
             isFolder: false,
+            isMegaFile: false, // 标记为本地存储文件
             userId: currentUser
           };
           
@@ -178,6 +163,23 @@ export const useFileOperations = () => {
             URL.revokeObjectURL(urlStr);
           } catch (error) {
             console.error('Error revoking object URL:', error);
+          }
+        }
+        
+        // 如果是本地存储文件，从服务器删除
+        if (urlStr && urlStr.startsWith('/uploads/')) {
+          const fileName = urlStr.replace('/uploads/', '');
+          try {
+            const response = await fetch(`/api/delete?file=${encodeURIComponent(fileName)}`, {
+              method: 'DELETE'
+            });
+            if (!response.ok) {
+              console.error('Failed to delete file from server:', await response.text());
+            } else {
+              console.log('File deleted from server:', fileName);
+            }
+          } catch (error) {
+            console.error('Error deleting file from server:', error);
           }
         }
       }

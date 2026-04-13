@@ -1,36 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Storage } from 'megajs';
+import { getMegaStorage } from '@/app/lib/mega-storage';
 import { Readable } from 'stream';
-
-// 全局缓存 Storage 实例，避免每次请求都重新登录
-let cachedStorage: any = null;
-
-async function getMegaStorage() {
-  if (!cachedStorage) {
-    console.log('🔐 正在登录 MEGA...');
-    
-    // 使用邮箱密码登录
-    const email = process.env.MEGA_EMAIL || '';
-    const password = process.env.MEGA_PASSWORD || '';
-    
-    console.log('环境变量状态:');
-    console.log('MEGA_EMAIL:', email ? '已设置' : '未设置');
-    console.log('MEGA_PASSWORD:', password ? '已设置' : '未设置');
-    
-    if (email && password) {
-      console.log('使用邮箱密码登录...');
-      cachedStorage = await new Storage({
-        email: email,
-        password: password,
-      }).ready;
-    } else {
-      throw new Error('MEGA credentials not configured');
-    }
-    
-    console.log('✅ MEGA 登录成功');
-  }
-  return cachedStorage;
-}
 
 export async function POST(request: NextRequest) {
   try {

@@ -21,48 +21,78 @@ export const useMegaStorage = () => {
   // 获取MEGA会话密钥
   const getMegaSession = async (): Promise<string | null> => {
     try {
+      console.log('🔄 开始获取MEGA会话密钥...');
       const response = await fetch('/api/mega/session');
+      
       if (!response.ok) {
-        throw new Error('Failed to get session');
+        const errorText = await response.text();
+        console.error('❌ 会话API请求失败:', response.status, errorText);
+        throw new Error(`Failed to get session: ${response.status} - ${errorText}`);
       }
+      
       const data = await response.json();
-      if (data.success && data.sessionId) {
-        console.log('✅ 获取MEGA会话密钥成功');
-        return data.sessionId;
+      console.log('📋 会话API响应:', data);
+      
+      // 支持两种返回格式：sessionId 或 sid
+      const sessionId = data.sessionId || data.sid;
+      
+      if (sessionId) {
+        console.log('✅ 获取MEGA会话密钥成功:', sessionId.substring(0, 10) + '...');
+        return sessionId;
+      } else {
+        console.error('❌ 会话API未返回有效的会话密钥:', data);
+        return null;
       }
-      return null;
     } catch (error) {
       console.error('❌ 获取MEGA会话密钥失败:', error);
+      setError((error as Error).message);
       return null;
     }
   };
 
   const connectToMega = async (): Promise<boolean> => {
     try {
+      console.log('🔄 开始连接到 MEGA...');
       const sessionId = await getMegaSession();
+      
       if (sessionId) {
-        // @ts-ignore - sid is a valid property for megajs storage initialization
-        const storage = new Storage({ sid: sessionId });
+        console.log('🔑 使用会话密钥连接 MEGA...');
+        // @ts-ignore - sessionID is the correct property for megajs storage initialization
+        const storage = new Storage({ sessionID: sessionId });
+        
+        console.log('⏳ 等待 MEGA 连接就绪...');
         await storage.ready;
+        
+        console.log('✅ MEGA 连接成功！');
         setMegaStorage(storage);
         setIsConnected(true);
         setLastConnectionTime(Date.now());
         console.log('✅ Mega API connected (via client-side)');
         return true;
+      } else {
+        console.error('❌ 无法获取有效的会话密钥');
+        return false;
       }
-      return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Mega连接失败:', error);
-      setError((error as Error).message);
+      console.error('错误代码:', error.code);
+      console.error('错误堆栈:', error.stack);
+      setError(error.message || '连接 MEGA 失败');
       return false;
     }
   };
 
   // 验证连接状态
   const validateConnection = async (): Promise<boolean> => {
+    console.log('🔍 验证 MEGA 连接状态...');
+    console.log('当前连接状态:', isConnected);
+    console.log('当前存储实例:', megaStorage ? '存在' : '不存在');
+    
     if (!isConnected || !megaStorage) {
+      console.log('⚠️ 连接状态无效，尝试重新连接...');
       return await connectToMega();
     }
+    console.log('✅ 连接状态有效');
     return true;
   };
 
@@ -85,28 +115,27 @@ export const useMegaStorage = () => {
         throw new Error('Not connected to MEGA');
       }
 
-      // 直接上传到MEGA
+      // 直接上传到MEGA - 直接传递File对象，让megajs处理流式上传
       console.log('⬆️ 开始客户端直传...');
       const upload = megaStorage.upload({
         name: fileName,
         size: fileSize
-      });
+      }, file);
 
       // 监听进度
       if (onProgress) {
         upload.on('progress', (stats: any) => {
           const progress = Math.round((stats.bytesLoaded / fileSize) * 100);
+          console.log(`上传进度: ${progress}%`);
           onProgress(progress);
         });
       }
 
-      // 获取Web Stream并转换为Uint8Array
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      // 写入数据
-      upload.write(uint8Array);
-      upload.end();
+      // 监听错误
+      upload.on('error', (error: any) => {
+        console.error('上传流错误:', error);
+        setError(error.message || '上传流错误');
+      });
 
       // 等待上传完成
       const result = await upload.complete;
@@ -117,9 +146,12 @@ export const useMegaStorage = () => {
       console.log('分享链接:', link);
 
       return { success: true, link: link };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Mega upload failed:', error);
-      setError((error as Error).message);
+      console.error('错误代码:', error.code);
+      console.error('错误堆栈:', error.stack);
+      const errorMessage = error.message || '上传失败，请重试';
+      setError(errorMessage);
       return null;
     }
   };
@@ -151,7 +183,13 @@ export const useMegaStorage = () => {
         console.log(`Upload attempt ${retries + 1}/${MAX_RETRIES}`);
         console.log(`File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
         
-        var result = await uploadFileInternal(file, onProgress, abortController);
+        // 包装 onProgress 函数，确保进度值正确
+        const wrappedOnProgress = onProgress ? (progress: number) => {
+          console.log(`Upload progress callback: ${progress}%`);
+          onProgress(progress);
+        } : undefined;
+        
+        var result = await uploadFileInternal(file, wrappedOnProgress, abortController);
         if (result && result.success) {
           var endTime = Date.now();
           var uploadTime = (endTime - startTime) / 1000; // 秒
@@ -177,10 +215,13 @@ export const useMegaStorage = () => {
           monitorMemoryUsage();
           
           return result;
+        } else {
+          console.warn(`Upload attempt ${retries + 1} returned null or unsuccessful result`);
         }
-      } catch (err) {
-        console.error(`Mega upload failed (Attempt ${retries + 1}/${MAX_RETRIES}):`, (err as Error).message);
-        setError((err as Error).message);
+      } catch (err: any) {
+        console.error(`Mega upload failed (Attempt ${retries + 1}/${MAX_RETRIES}):`, err.message);
+        console.error(`Error code:`, err.code);
+        setError(err.message || '上传失败');
       }
       
       if (retries < MAX_RETRIES - 1) {

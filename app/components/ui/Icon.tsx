@@ -265,7 +265,7 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
   };
 
   if (name === 'folder') {
-    const folderImagePath = "/folder-icon.png";
+    const folderImagePath = "/home-icon.jpg";
     const iconElement = <img src={folderImagePath} alt="folder" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
     if (onClick) {
       return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;

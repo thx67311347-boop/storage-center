@@ -3,6 +3,15 @@
 import React, { useRef, useState } from 'react';
 import Icon from './ui/Icon';
 
+// 导入类型
+interface RequestInit {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: any;
+  signal?: AbortSignal;
+  [key: string]: any;
+}
+
 interface FileUploaderProps {
   onFilesUploaded: (files: File[]) => void;
 }

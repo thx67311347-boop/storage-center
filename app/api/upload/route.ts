@@ -39,21 +39,27 @@ export async function POST(request: NextRequest) {
     let fileUrl: string;
     
     if (storageInfo.storageType === 'local') {
-      // 本地存储
-      const filePath = storageInfo.path;
+      // 本地存储 - 使用绝对路径
+      const path = require('path');
+      const absoluteFilePath = path.join(process.cwd(), storageInfo.path);
+      
+      console.log('📁 本地存储路径:', absoluteFilePath);
       
       // 获取文件流
       const webStream = file.stream();
       const nodeStream = Readable.fromWeb(webStream as any);
 
       // 创建写入流
-      const writeStream = fs.createWriteStream(/* turbo-ignore */ filePath);
+      const writeStream = fs.createWriteStream(absoluteFilePath);
 
       // 管道传输
       await new Promise<void>((resolve, reject) => {
         nodeStream.pipe(writeStream)
           .on('finish', () => resolve())
-          .on('error', reject);
+          .on('error', (error) => {
+            console.error('❌ 本地存储写入失败:', error);
+            reject(error);
+          });
       });
 
       console.log('✅ 本地存储上传成功:', fileName);

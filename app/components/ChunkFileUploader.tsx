@@ -7,19 +7,65 @@ interface FileUploaderProps {
   onFilesUploaded: (files: File[]) => void;
 }
 
-// 分块大小：5MB
-const CHUNK_SIZE = 5 * 1024 * 1024;
+// 分块大小：3MB（小于Vercel的4MB限制）
+const CHUNK_SIZE = 3 * 1024 * 1024;
+
+// 生成唯一文件名
+const generateUniqueFileName = (originalName: string): string => {
+  const timestamp = Date.now();
+  const randomStr = Math.random().toString(36).substring(2, 10);
+  const extIndex = originalName.lastIndexOf('.');
+  const ext = extIndex > -1 ? originalName.substring(extIndex) : '';
+  const baseName = extIndex > -1 ? originalName.substring(0, extIndex) : originalName;
+  return baseName + '_' + timestamp + '_' + randomStr + ext;
+};
 
 // 分块上传函数
 const uploadFileInChunks = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    // 模拟分块上传过程
-    // 在实际应用中，这里应该调用后端API进行分块上传
-    setTimeout(() => {
-      // 创建文件对象URL用于本地预览
-      const fileUrl = URL.createObjectURL(file);
-      resolve(fileUrl);
-    }, 1000);
+  return new Promise(async (resolve, reject) => {
+    const fileName = generateUniqueFileName(file.name);
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        // 计算当前分块的起始位置和大小
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        
+        // 创建表单数据
+        const formData = new FormData();
+        formData.append('file', chunk);
+        formData.append('chunkIndex', i.toString());
+        formData.append('totalChunks', totalChunks.toString());
+        formData.append('fileName', fileName);
+        formData.append('fileSize', file.size.toString());
+        
+        // 发送分块到服务器
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error(`分块上传失败: ${await response.text()}`);
+        }
+        
+        const result = await response.json();
+        
+        // 如果是最后一个分块，返回完整的文件URL
+        if (i === totalChunks - 1) {
+          if (result.success && result.link) {
+            resolve(result.link);
+          } else {
+            throw new Error('文件上传完成但未返回文件URL');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('分块上传失败:', error);
+      reject(error);
+    }
   });
 };
 
@@ -70,14 +116,10 @@ export default function ChunkFileUploader({ onFilesUploaded }: FileUploaderProps
         const file = files[i];
         setUploadingFileName(file.name);
         
-        // 模拟上传进度
-        for (let progress = 0; progress <= 100; progress += 10) {
-          setUploadProgress(progress);
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
         // 执行分块上传
         await uploadFileInChunks(file);
+        setUploadProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 500)); // 显示完成状态
       }
       
       // 上传完成后调用回调

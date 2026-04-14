@@ -72,7 +72,7 @@ class CloudStorageService {
 
   // 带重试机制的请求
   async withRetry<T>(fn: () => Promise<T>): Promise<T> {
-    let lastError: Error;
+    let lastError: Error = new Error('Unknown error');
     
     for (let i = 0; i < this.maxRetries; i++) {
       try {

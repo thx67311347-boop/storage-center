@@ -3,5 +3,13 @@
   "env": {
     "MEGA_EMAIL": "thx21092089@gmail.com",
     "MEGA_PASSWORD": "aA27745426!"
+  },
+  "functions": {
+    "api/upload.js": {
+      "maxBodySize": "1gb"
+    },
+    "api/**/*.js": {
+      "maxBodySize": "1gb"
+    }
   }
 }

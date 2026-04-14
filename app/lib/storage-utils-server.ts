@@ -1,4 +1,4 @@
-import { LOCAL_UPLOAD_DIR } from './storage-utils.js';
+import { LOCAL_UPLOAD_DIR } from './storage-utils';
 
 // 确保上传目录存在
 export async function ensureUploadDirExists(): Promise<void> {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
-import { generateUniqueFileName, getStoragePath } from '../../lib/storage-utils.js';
-import { ensureUploadDirExists } from '../../lib/storage-utils-server.js';
+import { generateUniqueFileName, getStoragePath } from '../../lib/storage-utils';
+import { ensureUploadDirExists } from '../../lib/storage-utils-server';
 import { cloudStorage } from '../../lib/cloud-storage';
 
 // 动态导入fs模块

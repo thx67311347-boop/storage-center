@@ -2,23 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-
-// 上传目录
-const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');
+import { generateUniqueFileName, getStoragePath, ensureUploadDirExists } from '../../lib/storage-utils';
+import { cloudStorage } from '../../lib/cloud-storage';
 
 // 确保上传目录存在
-if (!fs.existsSync(/* turbo-ignore */ UPLOAD_DIR)) {
-  fs.mkdirSync(/* turbo-ignore */ UPLOAD_DIR, { recursive: true });
-}
-
-// 生成唯一文件名
-function generateUniqueFileName(originalName: string): string {
-  const timestamp = Date.now();
-  const randomStr = Math.random().toString(36).substring(2, 10);
-  const ext = path.extname(originalName);
-  const baseName = path.basename(originalName, ext);
-  return `${baseName}_${timestamp}_${randomStr}${ext}`;
-}
+ensureUploadDirExists();
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,33 +22,53 @@ export async function POST(request: NextRequest) {
 
     // 生成唯一文件名
     const fileName = generateUniqueFileName(file.name);
-    const filePath = path.join(UPLOAD_DIR, fileName);
+    
+    // 获取存储路径
+    const storageInfo = getStoragePath(file.size, fileName);
+    
+    let fileUrl: string;
+    
+    if (storageInfo.storageType === 'local') {
+      // 本地存储
+      const filePath = storageInfo.path;
+      
+      // 获取文件流
+      const webStream = file.stream();
+      const nodeStream = Readable.fromWeb(webStream as any);
 
-    // 获取文件流
-    const webStream = file.stream();
-    const nodeStream = Readable.fromWeb(webStream as any);
+      // 创建写入流
+      const writeStream = fs.createWriteStream(/* turbo-ignore */ filePath);
 
-    // 创建写入流
-    const writeStream = fs.createWriteStream(/* turbo-ignore */ filePath);
+      // 管道传输
+      await new Promise<void>((resolve, reject) => {
+        nodeStream.pipe(writeStream)
+          .on('finish', () => resolve())
+          .on('error', reject);
+      });
 
-    // 管道传输
-    await new Promise<void>((resolve, reject) => {
-      nodeStream.pipe(writeStream)
-        .on('finish', () => resolve())
-        .on('error', reject);
-    });
+      console.log('✅ 本地存储上传成功:', fileName);
 
-    console.log('✅ 文件上传成功:', fileName);
+      // 生成访问路径
+      fileUrl = `/uploads/${fileName}`;
+    } else {
+      // 云存储
+      const cloudResult = await cloudStorage.uploadFile(file, fileName);
+      
+      if (!cloudResult.success || !cloudResult.url) {
+        throw new Error(cloudResult.error || '云存储上传失败');
+      }
 
-    // 生成访问路径
-    const fileUrl = `/uploads/${fileName}`;
+      console.log('✅ 云存储上传成功:', fileName);
+      fileUrl = cloudResult.url;
+    }
 
     return NextResponse.json({ 
       success: true, 
       link: fileUrl,
       fileName: file.name,
       filePath: fileName,
-      fileSize: file.size
+      fileSize: file.size,
+      storageType: storageInfo.storageType
     });
   } catch (error: any) {
     console.error('❌ 文件上传失败:', error);

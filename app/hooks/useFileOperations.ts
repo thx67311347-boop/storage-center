@@ -53,7 +53,7 @@ export const useFileOperations = () => {
           const formData = new FormData();
           formData.append('file', file);
           
-          // 调用本地存储API上传文件
+          // 调用上传API
           const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
@@ -81,7 +81,7 @@ export const useFileOperations = () => {
             url: result.link, // 使用API返回的文件URL
             parentId: currentFolder,
             isFolder: false,
-            isMegaFile: false, // 标记为本地存储文件
+            isMegaFile: result.storageType === 'cloud', // 标记为云存储文件
             userId: currentUser
           };
           

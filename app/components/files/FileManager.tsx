@@ -16,6 +16,7 @@ import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
 import { useFileOperations } from '../../hooks/useFileOperations';
+import { useStorageStatus } from '../../hooks/useStorageStatus';
 
 
 export default function FileManager() {
@@ -66,6 +67,7 @@ export default function FileManager() {
     handleCreateFolder,
     cleanupFileUrls
   } = useFileOperations();
+  const { storageStatus } = useStorageStatus();
 
   
   const [isUploadingToMega, setIsUploadingToMega] = useState(false);
@@ -648,8 +650,8 @@ export default function FileManager() {
         selectedSection={selectedSection}
         onSectionSelect={(section) => dispatch({ type: 'SET_SELECTED_SECTION', payload: section })}
         onSettingsClick={handleSettingsClick}
-        usedStorage={usedStorage}
-        totalStorage={totalStorage}
+        usedStorage={storageStatus ? storageStatus.cloudStorage.used : usedStorage}
+        totalStorage={storageStatus ? storageStatus.cloudStorage.total : totalStorage}
         onSearch={handleSearch}
         onClearSearch={handleClearSearch}
         searchQuery={searchQuery}

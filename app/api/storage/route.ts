@@ -1,33 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { calculateDirectorySize, ensureUploadDirExists } from '../../lib/storage-utils';
+import { cloudStorage } from '../../lib/cloud-storage';
 
 // 上传目录
 const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');
 
-// 计算目录大小
-function calculateDirectorySize(dir: string): number {
-  let totalSize = 0;
-  
-  try {
-    const files = fs.readdirSync(/* turbo-ignore */ dir);
-    
-    for (const file of files) {
-      const filePath = path.join(/* turbo-ignore */ dir, file);
-      const stats = fs.statSync(/* turbo-ignore */ filePath);
-      
-      if (stats.isFile()) {
-        totalSize += stats.size;
-      } else if (stats.isDirectory()) {
-        totalSize += calculateDirectorySize(filePath);
-      }
-    }
-  } catch (error) {
-    console.error('计算目录大小失败:', error);
-  }
-  
-  return totalSize;
-}
+// 确保上传目录存在
+ensureUploadDirExists();
 
 // 获取文件列表
 function getFileList(dir: string): Array<{name: string; size: number; lastModified: number}> {
@@ -57,31 +38,46 @@ function getFileList(dir: string): Array<{name: string; size: number; lastModifi
 
 export async function GET(request: NextRequest) {
   try {
-    // 确保上传目录存在
-    if (!fs.existsSync(/* turbo-ignore */ UPLOAD_DIR)) {
-      fs.mkdirSync(/* turbo-ignore */ UPLOAD_DIR, { recursive: true });
+    // 计算本地存储使用情况
+    const localUsedSize = calculateDirectorySize(UPLOAD_DIR);
+    const localFileList = getFileList(UPLOAD_DIR);
+    const localFileCount = localFileList.length;
+
+    // 本地存储总容量固定为50GB
+    const localTotalSize = 50 * 1024 * 1024 * 1024;
+    const localAvailableSize = localTotalSize - localUsedSize;
+    const localUsagePercentage = (localUsedSize / localTotalSize) * 100;
+
+    // 获取云存储状态
+    const cloudStatus = await cloudStorage.getStorageStatus();
+    let cloudTotalSize = 0;
+    let cloudUsedSize = 0;
+    let cloudAvailableSize = 0;
+    let cloudUsagePercentage = 0;
+
+    if (cloudStatus.success) {
+      cloudTotalSize = cloudStatus.total;
+      cloudUsedSize = cloudStatus.used;
+      cloudAvailableSize = cloudTotalSize - cloudUsedSize;
+      cloudUsagePercentage = (cloudUsedSize / cloudTotalSize) * 100;
     }
-
-    // 计算存储使用情况
-    const usedSize = calculateDirectorySize(UPLOAD_DIR);
-    const fileList = getFileList(UPLOAD_DIR);
-    const fileCount = fileList.length;
-
-    // 假设总存储容量为5GB
-    const totalSize = 5 * 1024 * 1024 * 1024;
-    const availableSize = totalSize - usedSize;
-    const usagePercentage = (usedSize / totalSize) * 100;
 
     return NextResponse.json({
       success: true,
-      storage: {
-        total: totalSize,
-        used: usedSize,
-        available: availableSize,
-        usagePercentage: usagePercentage.toFixed(2),
-        fileCount: fileCount
+      localStorage: {
+        total: localTotalSize,
+        used: localUsedSize,
+        available: localAvailableSize,
+        usagePercentage: localUsagePercentage.toFixed(2),
+        fileCount: localFileCount
       },
-      files: fileList
+      cloudStorage: {
+        total: cloudTotalSize,
+        used: cloudUsedSize,
+        available: cloudAvailableSize,
+        usagePercentage: cloudUsagePercentage.toFixed(2)
+      },
+      files: localFileList
     });
   } catch (error: any) {
     console.error('❌ 获取存储信息失败:', error);

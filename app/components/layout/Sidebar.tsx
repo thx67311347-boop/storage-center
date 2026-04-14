@@ -62,17 +62,20 @@ export default function Sidebar({ selectedSection, onSectionSelect, onSettingsCl
         <div className="space-y-4">
           <div className="md:block hidden">
             <div className="flex justify-between text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              <span>已用存储</span>
-              <span className="text-blue-600 dark:text-blue-400">{formatFileSize(usedStorage)} / {formatFileSize(totalStorage)}</span>
+              <span>已用云存储</span>
+              <span className={`${storagePercentage >= 80 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-blue-600 dark:text-blue-400'}`}>
+                {formatFileSize(usedStorage)} / {formatFileSize(totalStorage)}
+              </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-2.5 overflow-hidden">
               <div 
-                className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-lg transition-all duration-500 ease-in-out"
+                className={`h-full rounded-lg transition-all duration-500 ease-in-out ${storagePercentage >= 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
                 style={{ width: `${Math.min(storagePercentage, 100)}%` }}
               ></div>
             </div>
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
+            <div className={`mt-1 text-xs text-right ${storagePercentage >= 80 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
               {Math.round(storagePercentage)}% 已使用
+              {storagePercentage >= 80 && ' - 云存储空间不足'}
             </div>
           </div>
           <button 

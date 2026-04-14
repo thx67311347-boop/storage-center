@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import MobileLayout from '../components/layout/MobileLayout';
+import MobileLayout from '@/app/components/layout/MobileLayout';
 import Breadcrumb from '../components/layout/Breadcrumb';
 import UserInfo from '../components/settings/UserInfo';
 import PasswordChange from '../components/settings/PasswordChange';
@@ -16,6 +16,8 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('userInfo');
   const [usedStorage, setUsedStorage] = useState(1024 * 1024 * 1024); // 1GB
   const [totalStorage, setTotalStorage] = useState(5 * 1024 * 1024 * 1024); // 5GB
+  const [localUsedStorage, setLocalUsedStorage] = useState(0); // 0GB
+  const [localTotalStorage, setLocalTotalStorage] = useState(50 * 1024 * 1024 * 1024); // 50GB
 
   const handleSectionSelect = (section: string) => {
     // 处理侧边栏选择
@@ -80,6 +82,8 @@ export default function SettingsPage() {
       onSettingsClick={handleSettingsClick}
       usedStorage={usedStorage}
       totalStorage={totalStorage}
+      localUsedStorage={localUsedStorage}
+      localTotalStorage={localTotalStorage}
       onSearch={handleSearch}
       onClearSearch={handleClearSearch}
       searchQuery=""

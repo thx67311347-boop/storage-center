@@ -417,9 +417,9 @@ export default function FileManager() {
     );
   };
 
-  // 处理单个Mega文件上传
+  // 处理单个文件上传（使用本地存储API）
   const handleMegaFileUpload = async (file: File) => {
-    const task = createUploadTask(file, true);
+    const task = createUploadTask(file, false); // 标记为本地存储文件
     setCurrentUploadTask(task);
     setUploadTasks(prev => [task, ...prev]);
     
@@ -452,50 +452,63 @@ export default function FileManager() {
     try {
       updateUploadTask(task.id, { status: 'uploading' });
       
-      const uploadResult = await uploadFile(file, (progress) => {
-        const currentProgress = Math.round(progress * 100);
-        setUploadProgress(currentProgress);
-        updateUploadTask(task.id, { progress: currentProgress });
-        lastProgressTime = Date.now(); // 更新最后进度时间
-      }, abortController);
+      // 创建FormData对象
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 调用本地存储API上传文件
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        signal: abortController.signal
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`上传失败: ${errorText}`);
+      }
+      
+      const uploadResult = await response.json();
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || '上传失败');
+      }
       
       clearInterval(timeoutCheckInterval);
       
-      if (uploadResult && uploadResult.success) {
-        // 创建Mega文件项
-        const newFile: FileItem = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          url: uploadResult.link || '#',
-          parentId: currentFolder,
-          isFolder: false,
-          isDeleted: false,
-          lastModified: Date.now(),
-          isMegaFile: true
-        };
-        
-        // 更新文件列表
-        const updatedFiles = [...files, newFile];
-        dispatch({ type: 'SET_FILES', payload: updatedFiles });
-        
-        // 保存到localStorage
-        const storageKey = getUserStorageKey();
-        localStorage.setItem(storageKey, JSON.stringify(updatedFiles));
-        
-        // 更新存储使用量
-        dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
-        
-        // 更新任务状态为成功
-        updateUploadTask(task.id, {
-          status: 'success',
-          progress: 100,
-          endTime: Date.now()
-        });
-      }
+      // 创建文件项
+      const newFile: FileItem = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: uploadResult.link || '#',
+        parentId: currentFolder,
+        isFolder: false,
+        isDeleted: false,
+        lastModified: Date.now(),
+        isMegaFile: false // 标记为本地存储文件
+      };
+      
+      // 更新文件列表
+      const updatedFiles = [...files, newFile];
+      dispatch({ type: 'SET_FILES', payload: updatedFiles });
+      
+      // 保存到localStorage
+      const storageKey = getUserStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(updatedFiles));
+      
+      // 更新存储使用量
+      dispatch({ type: 'SET_USED_STORAGE', payload: usedStorage + file.size });
+      
+      // 更新任务状态为成功
+      updateUploadTask(task.id, {
+        status: 'success',
+        progress: 100,
+        endTime: Date.now()
+      });
     } catch (error) {
-      console.error('Mega upload failed:', error);
+      console.error('Upload failed:', error);
       const errorMessage = error instanceof Error ? error.message : '上传失败，请重试';
       setUploadError(errorMessage);
       updateUploadTask(task.id, {

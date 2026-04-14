@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // 上传目录
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -15,15 +15,15 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 构建文件路径
-    const filePath = path.join(UPLOAD_DIR, fileName);
+    const filePath = path.join(/* turbo-ignore */ UPLOAD_DIR, fileName);
 
     // 检查文件是否存在
-    if (!fs.existsSync(filePath)) {
+    if (!fs.existsSync(/* turbo-ignore */ filePath)) {
       return NextResponse.json({ error: '文件不存在' }, { status: 404 });
     }
 
     // 删除文件
-    fs.unlinkSync(filePath);
+    fs.unlinkSync(/* turbo-ignore */ filePath);
 
     console.log('✅ 文件删除成功:', fileName);
 

@@ -4,11 +4,11 @@ import path from 'path';
 import { Readable } from 'stream';
 
 // 上传目录
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');
 
 // 确保上传目录存在
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (!fs.existsSync(/* turbo-ignore */ UPLOAD_DIR)) {
+  fs.mkdirSync(/* turbo-ignore */ UPLOAD_DIR, { recursive: true });
 }
 
 // 生成唯一文件名
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
     const nodeStream = Readable.fromWeb(webStream as any);
 
     // 创建写入流
-    const writeStream = fs.createWriteStream(filePath);
+    const writeStream = fs.createWriteStream(/* turbo-ignore */ filePath);
 
     // 管道传输
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       nodeStream.pipe(writeStream)
-        .on('finish', resolve)
+        .on('finish', () => resolve())
         .on('error', reject);
     });
 

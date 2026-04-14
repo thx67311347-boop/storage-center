@@ -3,18 +3,18 @@ import fs from 'fs';
 import path from 'path';
 
 // 上传目录
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');
 
 // 计算目录大小
 function calculateDirectorySize(dir: string): number {
   let totalSize = 0;
   
   try {
-    const files = fs.readdirSync(dir);
+    const files = fs.readdirSync(/* turbo-ignore */ dir);
     
     for (const file of files) {
-      const filePath = path.join(dir, file);
-      const stats = fs.statSync(filePath);
+      const filePath = path.join(/* turbo-ignore */ dir, file);
+      const stats = fs.statSync(/* turbo-ignore */ filePath);
       
       if (stats.isFile()) {
         totalSize += stats.size;
@@ -34,11 +34,11 @@ function getFileList(dir: string): Array<{name: string; size: number; lastModifi
   const files: Array<{name: string; size: number; lastModified: number}> = [];
   
   try {
-    const fileNames = fs.readdirSync(dir);
+    const fileNames = fs.readdirSync(/* turbo-ignore */ dir);
     
     for (const fileName of fileNames) {
-      const filePath = path.join(dir, fileName);
-      const stats = fs.statSync(filePath);
+      const filePath = path.join(/* turbo-ignore */ dir, fileName);
+      const stats = fs.statSync(/* turbo-ignore */ filePath);
       
       if (stats.isFile()) {
         files.push({
@@ -58,8 +58,8 @@ function getFileList(dir: string): Array<{name: string; size: number; lastModifi
 export async function GET(request: NextRequest) {
   try {
     // 确保上传目录存在
-    if (!fs.existsSync(UPLOAD_DIR)) {
-      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    if (!fs.existsSync(/* turbo-ignore */ UPLOAD_DIR)) {
+      fs.mkdirSync(/* turbo-ignore */ UPLOAD_DIR, { recursive: true });
     }
 
     // 计算存储使用情况

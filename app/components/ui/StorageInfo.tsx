@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { formatStorageSize } from '../../lib/storage-utils';
+import { formatStorageSize } from '../../lib/storage-utils.js';
 import { useStorageStatus } from '../../hooks/useStorageStatus';
 
 export default function StorageInfo() {

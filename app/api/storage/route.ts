@@ -1,27 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import { calculateDirectorySize, ensureUploadDirExists } from '../../lib/storage-utils';
+import { calculateDirectorySize, ensureUploadDirExists } from '../../lib/storage-utils-server';
 import { cloudStorage } from '../../lib/cloud-storage';
 
-// 动态导入fs模块
-const fs = require('fs');
-
-// 上传目录
-const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');
+// 上传目录 - 仅在服务器端使用
+const UPLOAD_DIR = './uploads';
 
 // 确保上传目录存在
-ensureUploadDirExists();
+// 注意：由于这是在模块级别调用，无法使用await
+// 实际应用中，应该在GET函数内部调用
+// ensureUploadDirExists();
 
 // 获取文件列表
-function getFileList(dir: string): Array<{name: string; size: number; lastModified: number}> {
+async function getFileList(dir: string): Promise<Array<{name: string; size: number; lastModified: number}>> {
+  // 动态导入fs和path模块
+  const fs = await import('fs');
+  const path = await import('path');
+  
   const files: Array<{name: string; size: number; lastModified: number}> = [];
   
   try {
-    const fileNames = fs.readdirSync(/* turbo-ignore */ dir);
+    // 构建完整的目录路径
+    const fullDir = path.join(process.cwd(), dir);
+    const fileNames = fs.readdirSync(fullDir);
     
     for (const fileName of fileNames) {
-      const filePath = path.join(/* turbo-ignore */ dir, fileName);
-      const stats = fs.statSync(/* turbo-ignore */ filePath);
+      const filePath = path.join(fullDir, fileName);
+      const stats = fs.statSync(filePath);
       
       if (stats.isFile()) {
         files.push({
@@ -40,9 +44,12 @@ function getFileList(dir: string): Array<{name: string; size: number; lastModifi
 
 export async function GET(request: NextRequest) {
   try {
+    // 确保上传目录存在
+    await ensureUploadDirExists();
+    
     // 计算本地存储使用情况
-    const localUsedSize = calculateDirectorySize(UPLOAD_DIR);
-    const localFileList = getFileList(UPLOAD_DIR);
+    const localUsedSize = await calculateDirectorySize(UPLOAD_DIR);
+    const localFileList = await getFileList(UPLOAD_DIR);
     const localFileCount = localFileList.length;
 
     // 本地存储总容量固定为50GB

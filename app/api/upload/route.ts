@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
-import { generateUniqueFileName, getStoragePath, ensureUploadDirExists } from '../../lib/storage-utils';
+import { generateUniqueFileName, getStoragePath } from '../../lib/storage-utils.js';
+import { ensureUploadDirExists } from '../../lib/storage-utils-server.js';
 import { cloudStorage } from '../../lib/cloud-storage';
 
 // 动态导入fs模块
-const fs = require('fs');
+let fs: any;
 
 // 确保上传目录存在
-ensureUploadDirExists();
+// 注意：由于这是在模块级别调用，无法使用await
+// 实际应用中，应该在POST函数内部调用
+// ensureUploadDirExists();
 
 export async function POST(request: NextRequest) {
   try {
+    // 确保上传目录存在
+    await ensureUploadDirExists();
+    
+    // 动态导入fs模块
+    if (!fs) {
+      const fsModule = await import('fs');
+      fs = fsModule.default || fsModule;
+    }
+    
     // 解析表单数据
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -24,8 +36,13 @@ export async function POST(request: NextRequest) {
     // 生成唯一文件名
     const fileName = generateUniqueFileName(file.name);
     
+    // 获取当前存储状态
+    const storageStatus = await cloudStorage.getStorageStatus();
+    const usedStorage = storageStatus?.used || 0;
+    const totalStorage = storageStatus?.total || 5 * 1024 * 1024 * 1024; // 默认5GB
+    
     // 获取存储路径
-    const storageInfo = getStoragePath(file.size, fileName);
+    const storageInfo = getStoragePath(file.size, fileName, usedStorage, totalStorage);
     
     let fileUrl: string;
     
@@ -69,7 +86,8 @@ export async function POST(request: NextRequest) {
       fileName: file.name,
       filePath: fileName,
       fileSize: file.size,
-      storageType: storageInfo.storageType
+      storageType: storageInfo.storageType,
+      switched: storageInfo.switched
     });
   } catch (error: any) {
     console.error('❌ 文件上传失败:', error);

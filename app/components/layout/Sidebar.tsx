@@ -20,12 +20,14 @@ export default function Sidebar({ selectedSection, onSectionSelect, onSettingsCl
   const sections = [
     { id: 'all', name: '主页', icon: 'home' },
     { id: 'recent', name: '最近文件', icon: 'clock' },
+    { id: 'favorites', name: '我的最爱', icon: 'star' },
     { id: 'images', name: '图片', icon: 'image' },
     { id: 'documents', name: '文档', icon: 'document' },
     { id: 'videos', name: '视频', icon: 'video' },
     { id: 'audio', name: '音频', icon: 'audio' },
     { id: 'shared', name: '共享文件', icon: 'share' },
     { id: 'trash', name: '回收站', icon: 'trash' },
+    { id: 'tasks', name: '任务', icon: 'list' },
   ];
 
   const renderIcon = (icon: string) => {

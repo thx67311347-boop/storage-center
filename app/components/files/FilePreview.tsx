@@ -8,9 +8,10 @@ interface FilePreviewProps {
   file: FileItem;
   onClose: () => void;
   onDownload: () => void;
+  onToggleFavorite?: (fileId: string) => void;
 }
 
-export default function FilePreview({ file, onClose, onDownload }: FilePreviewProps) {
+export default function FilePreview({ file, onClose, onDownload, onToggleFavorite }: FilePreviewProps) {
   const getFileIcon = (file: FileItem) => {
     if (file.type === 'folder' || file.isFolder) return 'folder';
     if (file.type?.startsWith('image/')) return 'image';
@@ -51,6 +52,16 @@ export default function FilePreview({ file, onClose, onDownload }: FilePreviewPr
               <Icon name="download" size={16} color="white" />
               <span className="ml-1">下载</span>
             </button>
+            {onToggleFavorite && (
+              <button
+                onClick={() => onToggleFavorite(file.id)}
+                className={`px-3 py-1.5 ${file.isFavorite ? 'bg-yellow-500' : 'bg-gray-200 dark:bg-gray-700'} ${file.isFavorite ? 'text-white' : 'text-gray-700 dark:text-gray-300'} rounded-lg hover:opacity-80 transition-colors text-sm`}
+                title={file.isFavorite ? '取消收藏' : '添加收藏'}
+              >
+                <Icon name="star" size={16} color={file.isFavorite ? "white" : ""} />
+                <span className="ml-1">{file.isFavorite ? '已收藏' : '收藏'}</span>
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

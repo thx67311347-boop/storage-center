@@ -5,7 +5,7 @@ export const FIVE_MB = 5 * 1024 * 1024;
 export const LOCAL_UPLOAD_DIR = 'uploads';
 
 // 生成唯一文件名
-export function generateUniqueFileName(originalName: string): string {
+export function generateUniqueFileName(originalName) {
   var timestamp = Date.now();
   var randomStr = Math.random().toString(36).substring(2, 10);
   var extIndex = originalName.lastIndexOf('.');
@@ -15,20 +15,20 @@ export function generateUniqueFileName(originalName: string): string {
 }
 
 // 检测文件大小是否超过5MB
-export function isFileSizeOverThreshold(fileSize: number): boolean {
+export function isFileSizeOverThreshold(fileSize) {
   // 精度误差控制在±10KB以内
   var thresholdWithTolerance = FIVE_MB + 10 * 1024;
   return fileSize > thresholdWithTolerance;
 }
 
 // 检查云存储是否已满
-export function isCloudStorageFull(usedStorage: number, totalStorage: number): boolean {
+export function isCloudStorageFull(usedStorage, totalStorage) {
   var usagePercentage = (usedStorage / totalStorage) * 100;
   return usagePercentage >= 100;
 }
 
 // 获取存储路径
-export function getStoragePath(fileSize: number, fileName: string, usedStorage: number, totalStorage: number): any {
+export function getStoragePath(fileSize, fileName, usedStorage, totalStorage) {
   // 检查云存储是否已满
   var cloudFull = isCloudStorageFull(usedStorage, totalStorage);
   
@@ -50,7 +50,7 @@ export function getStoragePath(fileSize: number, fileName: string, usedStorage: 
 }
 
 // 格式化文件大小
-export function formatFileSize(size: number): string {
+export function formatFileSize(size) {
   if (size < 1024) return size + ' B';
   if (size < 1024 * 1024) return (size / 1024).toFixed(2) + ' KB';
   if (size < 1024 * 1024 * 1024) return (size / (1024 * 1024)).toFixed(2) + ' MB';
@@ -58,11 +58,11 @@ export function formatFileSize(size: number): string {
 }
 
 // 格式化存储大小（用于UI显示）
-export function formatStorageSize(size: number): string {
+export function formatStorageSize(size) {
   return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
 }
 
 // 计算存储使用率
-export function calculateStorageUsage(used: number, total: number): number {
+export function calculateStorageUsage(used, total) {
   return (used / total) * 100;
 }

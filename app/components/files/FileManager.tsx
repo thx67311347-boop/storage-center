@@ -12,6 +12,7 @@ import FileActions from './FileActions';
 import DownloadProgress from '../ui/DownloadProgress';
 import UploadProgress from '../ui/UploadProgress';
 import UploadTaskList from '../ui/UploadTaskList';
+import TaskManager from '../ui/TaskManager';
 import { FileItem } from '../../types';
 import { fileManagerReducer, initialState, FileManagerAction } from './FileManagerReducer';
 import { useFileStorage } from '../../hooks/useFileStorage';
@@ -54,6 +55,23 @@ export default function FileManager() {
   const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
   const [currentUploadTask, setCurrentUploadTask] = useState<UploadTask | null>(null);
   const [showUploadTasks, setShowUploadTasks] = useState(false);
+  
+  // 任务管理
+  interface Task {
+    id: string;
+    fileName: string;
+    fileSize: number;
+    progress: number;
+    status: 'pending' | 'uploading' | 'downloading' | 'success' | 'error' | 'timeout';
+    errorMessage: string | null;
+    startTime: number;
+    endTime: number | null;
+    type: 'upload' | 'download';
+    isMegaFile?: boolean;
+  }
+  
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [showTaskManager, setShowTaskManager] = useState(false);
   
   // 初始化自定义hooks
   const { loadFilesFromStorage, saveFilesToStorage, getStorageUsage } = useFileStorage();
@@ -309,6 +327,10 @@ export default function FileManager() {
     );
   };
 
+  const handleToggleFavorite = (fileId: string) => {
+    dispatch({ type: 'TOGGLE_FAVORITE', payload: fileId });
+  };
+
 
 
   const handleCreateFolderWrapper = async (folderName: string) => {
@@ -542,6 +564,21 @@ export default function FileManager() {
     setUploadTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
   };
 
+  // 任务管理函数
+  const handleTaskRetry = (task: Task) => {
+    if (task.type === 'upload') {
+      // 重新创建File对象并上传
+      const mockFile = new File([''], task.fileName, { type: task.fileName.split('.').pop() || '' });
+      Object.defineProperty(mockFile, 'size', { value: task.fileSize });
+      handleMegaFileUpload(mockFile);
+    }
+    // 这里可以添加下载任务的重试逻辑
+  };
+
+  const handleTaskClose = (taskId: string) => {
+    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+  };
+
   // 处理文件分享
   const handleFileShare = (file: FileItem) => {
     dispatch({ type: 'SET_SELECTED_FILE_FOR_SHARE', payload: file });
@@ -601,6 +638,10 @@ export default function FileManager() {
         filteredFiles = filteredFiles.filter(file => !file.isDeleted && file.parentId === currentFolder);
         filteredFiles = filteredFiles.sort((a, b) => b.lastModified - a.lastModified);
         break;
+      case 'favorites':
+        // 显示已收藏的文件
+        filteredFiles = filteredFiles.filter(file => !file.isDeleted && file.isFavorite === true);
+        break;
       case 'images':
         // 显示图片文件
         filteredFiles = filteredFiles.filter(file => !file.isDeleted && !file.isFolder && file.type && file.type.startsWith('image/') && file.parentId === currentFolder);
@@ -625,13 +666,17 @@ export default function FileManager() {
         // 显示回收站文件
         filteredFiles = filteredFiles.filter(file => file.isDeleted);
         break;
+      case 'tasks':
+        // 显示任务列表（将由 TaskManager 组件处理）
+        filteredFiles = [];
+        break;
       default:
         // 显示所有未删除的文件
         filteredFiles = filteredFiles.filter(file => !file.isDeleted && file.parentId === currentFolder);
         break;
     }
     
-    if (isSearching && searchQuery && selectedSection !== 'trash') {
+    if (isSearching && searchQuery && selectedSection !== 'trash' && selectedSection !== 'favorites' && selectedSection !== 'tasks') {
       const queryLower = searchQuery.toLowerCase();
       filteredFiles = filteredFiles.filter(file => {
         return (
@@ -680,28 +725,18 @@ export default function FileManager() {
             </>
           )}
           
-          {/* 文件列表 */}
-          {isMobile ? (
-            <MobileFileList 
-              files={getCurrentFiles()}
-              onFileClick={handleFileClick}
-              onFileDelete={handleFileDeleteWrapper}
-              onFileDownload={handleFileDownload}
-              onFileRename={handleFileRenameWrapper}
-              onFileRestore={handleFileRestoreWrapper}
-              onFileShare={handleFileShare}
-              onMultiFileShare={handleMultiFileShare}
-              onMultiFileDelete={handleMultiFileDeleteWrapper}
-              selectedFiles={selectedFiles}
-              onSelectFile={handleSelectFile}
-              isTrash={selectedSection === 'trash'}
-              selectedSection={selectedSection}
-              breadcrumb={breadcrumb}
-              onBreadcrumbClick={handleBreadcrumbClick}
+          {/* 任务管理 */}
+          {selectedSection === 'tasks' ? (
+            <TaskManager
+              tasks={tasks}
+              onRetryTask={handleTaskRetry}
+              onCloseTask={handleTaskClose}
+              isVisible={true}
             />
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
-              <VirtualFileList 
+            /* 文件列表 */
+            isMobile ? (
+              <MobileFileList 
                 files={getCurrentFiles()}
                 onFileClick={handleFileClick}
                 onFileDelete={handleFileDeleteWrapper}
@@ -714,8 +749,28 @@ export default function FileManager() {
                 selectedFiles={selectedFiles}
                 onSelectFile={handleSelectFile}
                 isTrash={selectedSection === 'trash'}
+                selectedSection={selectedSection}
+                breadcrumb={breadcrumb}
+                onBreadcrumbClick={handleBreadcrumbClick}
               />
-            </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <VirtualFileList 
+                  files={getCurrentFiles()}
+                  onFileClick={handleFileClick}
+                  onFileDelete={handleFileDeleteWrapper}
+                  onFileDownload={handleFileDownload}
+                  onFileRename={handleFileRenameWrapper}
+                  onFileRestore={handleFileRestoreWrapper}
+                  onFileShare={handleFileShare}
+                  onMultiFileShare={handleMultiFileShare}
+                  onMultiFileDelete={handleMultiFileDeleteWrapper}
+                  selectedFiles={selectedFiles}
+                  onSelectFile={handleSelectFile}
+                  isTrash={selectedSection === 'trash'}
+                />
+              </div>
+            )
           )}
         </div>
       </MobileLayout>
@@ -724,6 +779,7 @@ export default function FileManager() {
           file={selectedFile} 
           onClose={() => dispatch({ type: 'SET_SELECTED_FILE', payload: null })}
           onDownload={handleDownloadFile}
+          onToggleFavorite={handleToggleFavorite}
         />
       )}
       <CreateFolderModal 

@@ -1,4 +1,5 @@
-import { FIVE_MB, isFileSizeOverThreshold, getStoragePath, calculateDirectorySize, formatFileSize, formatStorageSize, calculateStorageUsage, ensureUploadDirExists, generateUniqueFileName } from './storage-utils';
+import { FIVE_MB, isFileSizeOverThreshold, getStoragePath, formatFileSize, formatStorageSize, calculateStorageUsage, generateUniqueFileName } from './storage-utils.js';
+import { calculateDirectorySize, ensureUploadDirExists } from './storage-utils-server.js';
 import fs from 'fs';
 import path from 'path';
 

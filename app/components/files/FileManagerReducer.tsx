@@ -41,7 +41,8 @@ export type FileManagerAction =
   | { type: 'DELETE_FILE'; payload: string }
   | { type: 'RENAME_FILE'; payload: { id: string; name: string } }
   | { type: 'RESTORE_FILE'; payload: string }
-  | { type: 'ADD_FOLDER'; payload: FileItem };
+  | { type: 'ADD_FOLDER'; payload: FileItem }
+  | { type: 'TOGGLE_FAVORITE'; payload: string };
 
 // 初始状态
 export const initialState: FileManagerState = {
@@ -146,6 +147,16 @@ export const fileManagerReducer = (state: FileManagerState, action: FileManagerA
     
     case 'ADD_FOLDER':
       return { ...state, files: [...state.files, action.payload] };
+    
+    case 'TOGGLE_FAVORITE':
+      return {
+        ...state,
+        files: state.files.map(file =>
+          file.id === action.payload
+            ? { ...file, isFavorite: !file.isFavorite, lastModified: Date.now() }
+            : file
+        ),
+      };
     
     default:
       return state;

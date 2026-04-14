@@ -45,6 +45,22 @@ export default function MobileLayout({
   onFloatingButtonClick
 }: MobileLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showFloatingMenu, setShowFloatingMenu] = useState(false);
+
+  const toggleFloatingMenu = () => {
+    setShowFloatingMenu(!showFloatingMenu);
+  };
+
+  const handleCreateFolder = () => {
+    onFloatingButtonClick && onFloatingButtonClick();
+    setShowFloatingMenu(false);
+  };
+
+  const handleUploadFile = () => {
+    // 触发文件上传
+    document.getElementById('file-upload-input')?.click();
+    setShowFloatingMenu(false);
+  };
 
   const mobileSections = [
     { id: 'all', name: '首页', icon: 'home' },
@@ -178,12 +194,34 @@ export default function MobileLayout({
       </div>
 
       {/* 浮动操作按钮 */}
-      <button
-        onClick={onFloatingButtonClick || (() => document.getElementById('file-upload-input')?.click())}
-        className="fixed right-6 bottom-24 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-110"
-      >
-        <Icon name="plus" size={24} />
-      </button>
+      <div className="fixed right-6 bottom-24 z-40">
+        {/* 浮动菜单 */}
+        {showFloatingMenu && (
+          <div className="flex flex-col gap-3 mb-4">
+            <button
+              onClick={handleUploadFile}
+              className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105"
+            >
+              <Icon name="upload" size={20} className="text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">上传文件</span>
+            </button>
+            <button
+              onClick={handleCreateFolder}
+              className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105"
+            >
+              <Icon name="folder" size={20} className="text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">新增文件夹</span>
+            </button>
+          </div>
+        )}
+        {/* 浮动按钮 */}
+        <button
+          onClick={toggleFloatingMenu}
+          className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-110"
+        >
+          <Icon name={showFloatingMenu ? "close" : "plus"} size={24} />
+        </button>
+      </div>
     </div>
   );
 }

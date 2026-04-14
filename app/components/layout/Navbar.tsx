@@ -36,10 +36,9 @@ export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout,
             <div className="bg-blue-600 rounded-lg p-2">
               <Icon name="folder" size={24} color="white" />
             </div>
-            <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Storage Center</h1>
           </div>
-        <div className="flex items-center gap-3 md:gap-5">
-          <div className="relative flex-1 max-w-md md:max-w-lg">
+        <div className="flex items-center gap-3 md:gap-5 flex-1">
+          <div className="relative flex-1">
             <form onSubmit={handleSearchSubmit}>
               <div className="relative">
                 <input
@@ -69,6 +68,17 @@ export default function Navbar({ onSearch, onClearSearch, searchQuery, onLogout,
               </div>
             </form>
           </div>
+          <button
+            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 relative"
+            title="AI 智能助手"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+              <line x1="9" y1="9" x2="9.01" y2="9" />
+              <line x1="15" y1="9" x2="15.01" y2="9" />
+            </svg>
+          </button>
           <button className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 relative">
             <Icon name="bell" size={20} className="text-gray-600 dark:text-gray-400" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>

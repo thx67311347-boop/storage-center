@@ -159,8 +159,8 @@ export default function ChunkFileUploader({ onFilesUploaded }: FileUploaderProps
     setErrorMessage(null);
     
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
         setUploadingFileName(file.name);
         setUploadProgress(0);
         

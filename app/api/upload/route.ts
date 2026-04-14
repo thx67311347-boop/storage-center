@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
+import fs from 'fs';
 import { generateUniqueFileName, getStoragePath } from '../../lib/storage-utils';
 import { ensureUploadDirExists } from '../../lib/storage-utils-server';
 import { cloudStorage } from '../../lib/cloud-storage';
-
-// 动态导入fs模块
-let fs: any;
 
 // 确保上传目录存在
 // 注意：由于这是在模块级别调用，无法使用await
@@ -16,12 +14,6 @@ export async function POST(request: NextRequest) {
   try {
     // 确保上传目录存在
     await ensureUploadDirExists();
-    
-    // 动态导入fs模块
-    if (!fs) {
-      const fsModule = await import('fs');
-      fs = fsModule.default || fsModule;
-    }
     
     // 解析表单数据
     const formData = await request.formData();

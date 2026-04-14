@@ -1,11 +1,9 @@
 import { LOCAL_UPLOAD_DIR } from './storage-utils';
+import fs from 'fs';
+import path from 'path';
 
 // 确保上传目录存在
 export async function ensureUploadDirExists(): Promise<void> {
-  // 动态导入fs和path模块
-  const fs = await import('fs');
-  const path = await import('path');
-  
   // 构建完整的上传目录路径
   const fullUploadDir = path.join(process.cwd(), LOCAL_UPLOAD_DIR);
   
@@ -16,10 +14,6 @@ export async function ensureUploadDirExists(): Promise<void> {
 
 // 计算目录大小
 export async function calculateDirectorySize(dir: string): Promise<number> {
-  // 动态导入fs和path模块
-  const fs = await import('fs');
-  const path = await import('path');
-  
   let totalSize = 0;
   
   try {

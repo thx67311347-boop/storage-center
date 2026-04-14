@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { calculateDirectorySize, ensureUploadDirExists } from '../../lib/storage-utils-server';
 import { cloudStorage } from '../../lib/cloud-storage';
 
@@ -11,11 +13,7 @@ const UPLOAD_DIR = './uploads';
 // ensureUploadDirExists();
 
 // 获取文件列表
-async function getFileList(dir: string): Promise<Array<{name: string; size: number; lastModified: number}>> {
-  // 动态导入fs和path模块
-  const fs = await import('fs');
-  const path = await import('path');
-  
+function getFileList(dir: string): Array<{name: string; size: number; lastModified: number}> {
   const files: Array<{name: string; size: number; lastModified: number}> = [];
   
   try {
@@ -49,7 +47,7 @@ export async function GET(request: NextRequest) {
     
     // 计算本地存储使用情况
     const localUsedSize = await calculateDirectorySize(UPLOAD_DIR);
-    const localFileList = await getFileList(UPLOAD_DIR);
+    const localFileList = getFileList(UPLOAD_DIR);
     const localFileCount = localFileList.length;
 
     // 本地存储总容量固定为50GB

@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 
 // 5MB阈值（字节）
@@ -6,13 +5,6 @@ export const FIVE_MB = 5 * 1024 * 1024;
 
 // 本地存储路径
 export const LOCAL_UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-
-// 确保上传目录存在
-export function ensureUploadDirExists() {
-  if (!fs.existsSync(LOCAL_UPLOAD_DIR)) {
-    fs.mkdirSync(LOCAL_UPLOAD_DIR, { recursive: true });
-  }
-}
 
 // 生成唯一文件名
 export function generateUniqueFileName(originalName: string): string {
@@ -34,7 +26,6 @@ export function isFileSizeOverThreshold(fileSize: number): boolean {
 export function getStoragePath(fileSize: number, fileName: string): { storageType: 'local' | 'cloud', path: string } {
   if (isFileSizeOverThreshold(fileSize)) {
     // 大文件存储到本地
-    ensureUploadDirExists();
     return {
       storageType: 'local',
       path: path.join(LOCAL_UPLOAD_DIR, fileName)
@@ -46,30 +37,6 @@ export function getStoragePath(fileSize: number, fileName: string): { storageTyp
       path: fileName
     };
   }
-}
-
-// 计算目录大小
-export function calculateDirectorySize(dir: string): number {
-  let totalSize = 0;
-  
-  try {
-    const files = fs.readdirSync(dir);
-    
-    for (const file of files) {
-      const filePath = path.join(dir, file);
-      const stats = fs.statSync(filePath);
-      
-      if (stats.isFile()) {
-        totalSize += stats.size;
-      } else if (stats.isDirectory()) {
-        totalSize += calculateDirectorySize(filePath);
-      }
-    }
-  } catch (error) {
-    console.error('计算目录大小失败:', error);
-  }
-  
-  return totalSize;
 }
 
 // 格式化文件大小
@@ -88,4 +55,47 @@ export function formatStorageSize(size: number): string {
 // 计算存储使用率
 export function calculateStorageUsage(used: number, total: number): number {
   return (used / total) * 100;
+}
+
+// 服务器端专用函数
+export let ensureUploadDirExists: () => void;
+export let calculateDirectorySize: (dir: string) => number;
+
+if (typeof window === 'undefined') {
+  const fs = require('fs');
+  
+  // 确保上传目录存在
+  ensureUploadDirExists = function() {
+    if (!fs.existsSync(LOCAL_UPLOAD_DIR)) {
+      fs.mkdirSync(LOCAL_UPLOAD_DIR, { recursive: true });
+    }
+  };
+  
+  // 计算目录大小
+  calculateDirectorySize = function(dir: string): number {
+    let totalSize = 0;
+    
+    try {
+      const files = fs.readdirSync(dir);
+      
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          totalSize += stats.size;
+        } else if (stats.isDirectory()) {
+          totalSize += calculateDirectorySize(filePath);
+        }
+      }
+    } catch (error) {
+      console.error('计算目录大小失败:', error);
+    }
+    
+    return totalSize;
+  };
+} else {
+  // 客户端空实现
+  ensureUploadDirExists = function() {};
+  calculateDirectorySize = function() { return 0; };
 }

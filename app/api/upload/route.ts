@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { Readable } from 'stream';
 import { generateUniqueFileName, getStoragePath, ensureUploadDirExists } from '../../lib/storage-utils';
 import { cloudStorage } from '../../lib/cloud-storage';
+
+// 动态导入fs模块
+const fs = require('fs');
 
 // 确保上传目录存在
 ensureUploadDirExists();

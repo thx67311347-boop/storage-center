@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
 import path from 'path';
 import { calculateDirectorySize, ensureUploadDirExists } from '../../lib/storage-utils';
 import { cloudStorage } from '../../lib/cloud-storage';
+
+// 动态导入fs模块
+const fs = require('fs');
 
 // 上传目录
 const UPLOAD_DIR = path.join(/* turbo-ignore */ process.cwd(), 'uploads');

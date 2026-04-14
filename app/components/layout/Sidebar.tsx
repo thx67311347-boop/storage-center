@@ -15,7 +15,7 @@ export default function Sidebar({ selectedSection, onSectionSelect, onSettingsCl
   const storagePercentage = (usedStorage / totalStorage) * 100;
 
   const sections = [
-    { id: 'all', name: '主页', icon: 'folder' },
+    { id: 'all', name: '主页', icon: 'home' },
     { id: 'recent', name: '最近文件', icon: 'clock' },
     { id: 'images', name: '图片', icon: 'image' },
     { id: 'documents', name: '文档', icon: 'document' },

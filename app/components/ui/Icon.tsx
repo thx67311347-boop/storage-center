@@ -264,8 +264,17 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, color, onC
     ...(color ? { color } : {})
   };
 
+  if (name === 'home') {
+    const homeImagePath = "/home-icon.jpg";
+    const iconElement = <img src={homeImagePath} alt="home" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
+    if (onClick) {
+      return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;
+    }
+    return iconElement;
+  }
+
   if (name === 'folder') {
-    const folderImagePath = "/home-icon.jpg";
+    const folderImagePath = "/folder-icon.png";
     const iconElement = <img src={folderImagePath} alt="folder" width={size} height={size} className={className} style={{ objectFit: 'contain' }} />;
     if (onClick) {
       return <button onClick={onClick} className={`inline-flex items-center justify-center ${className}`}>{iconElement}</button>;

@@ -43,7 +43,7 @@ export default function MobileLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const mobileSections = [
-    { id: 'all', name: '首页', icon: 'folder' },
+    { id: 'all', name: '首页', icon: 'home' },
     { id: 'recent', name: '最近', icon: 'clock' },
     { id: 'shared', name: '共享', icon: 'share' },
     { id: 'trash', name: '回收站', icon: 'trash' },
@@ -82,7 +82,7 @@ export default function MobileLayout({
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 rounded-lg p-1.5">
-              <Icon name="folder" size={20} color="white" />
+              <Icon name="home" size={20} color="white" />
             </div>
             <h1 className="text-base font-bold text-gray-900 dark:text-white">Storage Center</h1>
           </div>

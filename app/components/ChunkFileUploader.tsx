@@ -4,6 +4,13 @@ import React, { useRef, useState } from 'react';
 import Icon from './ui/Icon';
 
 // 导入类型
+interface AbortSignal {
+  aborted: boolean;
+  onabort: ((this: AbortSignal, event: Event) => any) | null;
+  addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+  removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+}
+
 interface RequestInit {
   method?: string;
   headers?: Record<string, string>;

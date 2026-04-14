@@ -9,10 +9,13 @@ interface SidebarProps {
   onSettingsClick: () => void;
   usedStorage: number;
   totalStorage: number;
+  localUsedStorage: number;
+  localTotalStorage: number;
 }
 
-export default function Sidebar({ selectedSection, onSectionSelect, onSettingsClick, usedStorage, totalStorage }: SidebarProps) {
+export default function Sidebar({ selectedSection, onSectionSelect, onSettingsClick, usedStorage, totalStorage, localUsedStorage, localTotalStorage }: SidebarProps) {
   const storagePercentage = (usedStorage / totalStorage) * 100;
+  const localStoragePercentage = (localUsedStorage / localTotalStorage) * 100;
 
   const sections = [
     { id: 'all', name: '主页', icon: 'home' },
@@ -60,22 +63,45 @@ export default function Sidebar({ selectedSection, onSectionSelect, onSettingsCl
       </div>
       <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="space-y-4">
-          <div className="md:block hidden">
-            <div className="flex justify-between text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              <span>已用云存储</span>
-              <span className={`${storagePercentage >= 80 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-blue-600 dark:text-blue-400'}`}>
-                {formatFileSize(usedStorage)} / {formatFileSize(totalStorage)}
-              </span>
+          <div className="md:block hidden space-y-4">
+            {/* 云存储信息 */}
+            <div>
+              <div className="flex justify-between text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                <span>已用云存储</span>
+                <span className={`${storagePercentage >= 80 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-blue-600 dark:text-blue-400'}`}>
+                  {formatFileSize(usedStorage)} / {formatFileSize(totalStorage)}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-2.5 overflow-hidden">
+                <div 
+                  className={`h-full rounded-lg transition-all duration-500 ease-in-out ${storagePercentage >= 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
+                  style={{ width: `${Math.min(storagePercentage, 100)}%` }}
+                ></div>
+              </div>
+              <div className={`mt-1 text-xs text-right ${storagePercentage >= 80 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                {Math.round(storagePercentage)}% 已使用
+                {storagePercentage >= 80 && ' - 云存储空间不足'}
+              </div>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-2.5 overflow-hidden">
-              <div 
-                className={`h-full rounded-lg transition-all duration-500 ease-in-out ${storagePercentage >= 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
-                style={{ width: `${Math.min(storagePercentage, 100)}%` }}
-              ></div>
-            </div>
-            <div className={`mt-1 text-xs text-right ${storagePercentage >= 80 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-              {Math.round(storagePercentage)}% 已使用
-              {storagePercentage >= 80 && ' - 云存储空间不足'}
+            
+            {/* 本地存储信息 */}
+            <div>
+              <div className="flex justify-between text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                <span>已用本地存储</span>
+                <span className={`${localStoragePercentage >= 80 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-green-600 dark:text-green-400'}`}>
+                  {formatFileSize(localUsedStorage)} / {formatFileSize(localTotalStorage)}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-2.5 overflow-hidden">
+                <div 
+                  className={`h-full rounded-lg transition-all duration-500 ease-in-out ${localStoragePercentage >= 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-green-500 to-green-600'}`}
+                  style={{ width: `${Math.min(localStoragePercentage, 100)}%` }}
+                ></div>
+              </div>
+              <div className={`mt-1 text-xs text-right ${localStoragePercentage >= 80 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                {Math.round(localStoragePercentage)}% 已使用
+                {localStoragePercentage >= 80 && ' - 本地存储空间不足'}
+              </div>
             </div>
           </div>
           <button 

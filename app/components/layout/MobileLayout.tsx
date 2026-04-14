@@ -12,6 +12,8 @@ interface MobileLayoutProps {
   onSettingsClick: () => void;
   usedStorage: number;
   totalStorage: number;
+  localUsedStorage: number;
+  localTotalStorage: number;
   onSearch: (query: string) => void;
   onClearSearch: () => void;
   searchQuery: string;
@@ -30,6 +32,8 @@ export default function MobileLayout({
   onSettingsClick,
   usedStorage,
   totalStorage,
+  localUsedStorage,
+  localTotalStorage,
   onSearch,
   onClearSearch,
   searchQuery,
@@ -58,6 +62,8 @@ export default function MobileLayout({
           onSettingsClick={onSettingsClick}
           usedStorage={usedStorage}
           totalStorage={totalStorage}
+          localUsedStorage={localUsedStorage}
+          localTotalStorage={localTotalStorage}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Navbar

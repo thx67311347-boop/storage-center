@@ -652,6 +652,8 @@ export default function FileManager() {
         onSettingsClick={handleSettingsClick}
         usedStorage={storageStatus ? storageStatus.cloudStorage.used : usedStorage}
         totalStorage={storageStatus ? storageStatus.cloudStorage.total : totalStorage}
+        localUsedStorage={storageStatus ? storageStatus.localStorage.used : 0}
+        localTotalStorage={storageStatus ? storageStatus.localStorage.total : 50 * 1024 * 1024 * 1024}
         onSearch={handleSearch}
         onClearSearch={handleClearSearch}
         searchQuery={searchQuery}

@@ -9,6 +9,10 @@ interface FileUploaderProps {
 
 // 分块大小：3MB（小于Vercel的4MB限制）
 const CHUNK_SIZE = 3 * 1024 * 1024;
+// 请求超时时间：60秒
+const REQUEST_TIMEOUT = 60000;
+// 最大重试次数
+const MAX_RETRIES = 3;
 
 // 生成唯一文件名
 const generateUniqueFileName = (originalName: string): string => {
@@ -20,45 +24,88 @@ const generateUniqueFileName = (originalName: string): string => {
   return baseName + '_' + timestamp + '_' + randomStr + ext;
 };
 
+// 带超时的fetch请求
+const fetchWithTimeout = (url: string, options: RequestInit, timeout: number): Promise<Response> => {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    fetch(url, {
+      ...options,
+      signal: controller.signal
+    })
+    .then((response) => {
+      clearTimeout(id);
+      resolve(response);
+    })
+    .catch((error) => {
+      clearTimeout(id);
+      reject(error);
+    });
+  });
+};
+
 // 分块上传函数
-const uploadFileInChunks = async (file: File): Promise<string> => {
+const uploadFileInChunks = async (file: File, onProgress: (progress: number) => void): Promise<string> => {
   return new Promise(async (resolve, reject) => {
     const fileName = generateUniqueFileName(file.name);
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    let uploadedChunks = 0;
     
     try {
       for (let i = 0; i < totalChunks; i++) {
-        // 计算当前分块的起始位置和大小
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
+        let retries = 0;
+        let uploaded = false;
         
-        // 创建表单数据
-        const formData = new FormData();
-        formData.append('file', chunk);
-        formData.append('chunkIndex', i.toString());
-        formData.append('totalChunks', totalChunks.toString());
-        formData.append('fileName', fileName);
-        formData.append('fileSize', file.size.toString());
-        
-        // 发送分块到服务器
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!response.ok) {
-          throw new Error(`分块上传失败: ${await response.text()}`);
-        }
-        
-        const result = await response.json();
-        
-        // 如果是最后一个分块，返回完整的文件URL
-        if (i === totalChunks - 1) {
-          if (result.success && result.link) {
-            resolve(result.link);
-          } else {
-            throw new Error('文件上传完成但未返回文件URL');
+        while (!uploaded && retries < MAX_RETRIES) {
+          try {
+            // 计算当前分块的起始位置和大小
+            const start = i * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunk = file.slice(start, end);
+            
+            // 创建表单数据
+            const formData = new FormData();
+            formData.append('file', chunk);
+            formData.append('chunkIndex', i.toString());
+            formData.append('totalChunks', totalChunks.toString());
+            formData.append('fileName', fileName);
+            formData.append('fileSize', file.size.toString());
+            
+            // 发送分块到服务器，带超时
+            const response = await fetchWithTimeout('/api/upload', {
+              method: 'POST',
+              body: formData
+            }, REQUEST_TIMEOUT);
+            
+            if (!response.ok) {
+              throw new Error(`分块上传失败: ${await response.text()}`);
+            }
+            
+            const result = await response.json();
+            
+            uploadedChunks++;
+            const progress = Math.round((uploadedChunks / totalChunks) * 100);
+            onProgress(progress);
+            
+            // 如果是最后一个分块，返回完整的文件URL
+            if (i === totalChunks - 1) {
+              if (result.success && result.link) {
+                resolve(result.link);
+              } else {
+                throw new Error('文件上传完成但未返回文件URL');
+              }
+            }
+            
+            uploaded = true;
+          } catch (error: any) {
+            retries++;
+            if (retries >= MAX_RETRIES) {
+              throw new Error(`分块 ${i + 1} 上传失败，已重试 ${MAX_RETRIES} 次: ${error.message}`);
+            }
+            console.warn(`分块 ${i + 1} 上传失败，正在重试 (${retries}/${MAX_RETRIES}):`, error);
+            // 等待一段时间后重试
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
           }
         }
       }
@@ -75,6 +122,7 @@ export default function ChunkFileUploader({ onFilesUploaded }: FileUploaderProps
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -110,27 +158,34 @@ export default function ChunkFileUploader({ onFilesUploaded }: FileUploaderProps
   const processFiles = async (files: File[]) => {
     setIsUploading(true);
     setUploadProgress(0);
+    setErrorMessage(null);
     
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         setUploadingFileName(file.name);
+        setUploadProgress(0);
         
-        // 执行分块上传
-        await uploadFileInChunks(file);
-        setUploadProgress(100);
+        // 执行分块上传，实时更新进度
+        await uploadFileInChunks(file, (progress) => {
+          setUploadProgress(progress);
+        });
+        
         await new Promise(resolve => setTimeout(resolve, 500)); // 显示完成状态
       }
       
       // 上传完成后调用回调
       onFilesUploaded(files);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading files:', error);
-      alert('文件上传失败，请重试。');
+      setErrorMessage(`上传失败: ${error.message}`);
+      alert(`文件上传失败: ${error.message}\n请检查网络连接后重试。`);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
       setUploadingFileName('');
+      // 清除错误信息
+      setTimeout(() => setErrorMessage(null), 5000);
     }
   };
 
@@ -156,7 +211,7 @@ export default function ChunkFileUploader({ onFilesUploaded }: FileUploaderProps
             ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 text-blue-700 dark:text-blue-300 border-2 border-dashed'
             : isUploading
             ? 'bg-gray-200 dark:bg-gray-700 border border-gray-400 dark:border-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-            : 'bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}
+            : 'bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'} 
           rounded-md`}
         >
           <Icon name="upload" size={16} />
@@ -179,6 +234,9 @@ export default function ChunkFileUploader({ onFilesUploaded }: FileUploaderProps
                 style={{ width: `${uploadProgress}%` }}
               ></div>
             </div>
+            {errorMessage && (
+              <div className="text-sm text-red-600 dark:text-red-400">{errorMessage}</div>
+            )}
           </div>
         </div>
       )}

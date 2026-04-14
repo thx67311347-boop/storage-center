@@ -13,10 +13,37 @@ import { cloudStorage } from '../../lib/cloud-storage';
 
 // 分块上传相关
 const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB 块大小，小于Vercel的4MB限制
+const TEMP_DIR_EXPIRY = 24 * 60 * 60 * 1000; // 临时文件过期时间：24小时
+
+// 清理过期的临时文件
+async function cleanupExpiredTempFiles() {
+  try {
+    const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+    if (!fs.existsSync(tempDir)) return;
+
+    const files = fs.readdirSync(tempDir);
+    const now = Date.now();
+
+    for (const file of files) {
+      const filePath = path.join(tempDir, file);
+      const stats = fs.statSync(filePath);
+      
+      if (now - stats.mtime.getTime() > TEMP_DIR_EXPIRY) {
+        fs.unlinkSync(filePath);
+        console.log(`🧹 清理过期临时文件: ${file}`);
+      }
+    }
+  } catch (error) {
+    console.error('🧹 清理临时文件失败:', error);
+  }
+}
 
 // 分块上传处理
 export async function POST(request: NextRequest) {
   try {
+    // 定期清理过期的临时文件
+    cleanupExpiredTempFiles();
+    
     // 确保上传目录存在
     await ensureUploadDirExists();
     
@@ -87,6 +114,10 @@ export async function POST(request: NextRequest) {
           })
           .on('error', (error) => {
             console.error('❌ 本地存储写入失败:', error);
+            // 清理部分写入的文件
+            if (fs.existsSync(absoluteFilePath)) {
+              fs.unlinkSync(absoluteFilePath);
+            }
             reject(error);
           });
       });
@@ -166,6 +197,10 @@ async function handleChunkUpload(
         })
         .on('error', (error) => {
           console.error('❌ 分块写入失败:', error);
+          // 清理部分写入的分块
+          if (fs.existsSync(chunkPath)) {
+            fs.unlinkSync(chunkPath);
+          }
           reject(error);
         });
     });
@@ -218,22 +253,53 @@ async function mergeChunks(
       const chunkPath = path.join(tempDir, `${fileName}.chunk${i}`);
       
       if (!fs.existsSync(chunkPath)) {
+        // 清理已创建的文件
+        finalFileStream.end();
+        if (fs.existsSync(finalFilePath)) {
+          fs.unlinkSync(finalFilePath);
+        }
         throw new Error(`分块 ${i} 不存在`);
       }
 
-      // 读取分块并写入最终文件
-      const chunkBuffer = fs.readFileSync(chunkPath);
-      finalFileStream.write(chunkBuffer);
+      try {
+        // 使用流式读取分块，减少内存使用
+        const chunkStream = fs.createReadStream(chunkPath);
+        await new Promise<void>((resolve, reject) => {
+          chunkStream.pipe(finalFileStream, { end: false })
+            .on('finish', resolve)
+            .on('error', reject);
+        });
 
-      // 删除已处理的分块
-      fs.unlinkSync(chunkPath);
-      console.log(`✅ 处理并删除分块 ${i + 1}/${totalChunks}`);
+        // 删除已处理的分块
+        fs.unlinkSync(chunkPath);
+        console.log(`✅ 处理并删除分块 ${i + 1}/${totalChunks}`);
+      } catch (error) {
+        // 清理已创建的文件和剩余的分块
+        finalFileStream.end();
+        if (fs.existsSync(finalFilePath)) {
+          fs.unlinkSync(finalFilePath);
+        }
+        // 清理剩余的分块
+        for (let j = i; j < totalChunks; j++) {
+          const remainingChunkPath = path.join(tempDir, `${fileName}.chunk${j}`);
+          if (fs.existsSync(remainingChunkPath)) {
+            fs.unlinkSync(remainingChunkPath);
+          }
+        }
+        throw error;
+      }
     }
 
     // 完成写入
     finalFileStream.end();
 
     console.log('✅ 分块合并完成:', finalFilePath);
+
+    // 验证合并后的文件大小
+    const stats = fs.statSync(finalFilePath);
+    if (fileSize > 0 && stats.size !== fileSize) {
+      console.warn(`⚠️ 文件大小不匹配: 预期 ${fileSize} 字节, 实际 ${stats.size} 字节`);
+    }
 
     // 生成访问路径
     const fileUrl = `/uploads/${fileName}`;
@@ -244,7 +310,7 @@ async function mergeChunks(
       link: fileUrl,
       fileName: path.basename(fileName),
       filePath: fileName,
-      fileSize,
+      fileSize: stats.size,
       storageType: 'local',
       switched: false
     });

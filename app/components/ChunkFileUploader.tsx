@@ -3,22 +3,6 @@
 import React, { useRef, useState } from 'react';
 import Icon from './ui/Icon';
 
-// 导入类型
-interface AbortSignal {
-  aborted: boolean;
-  onabort: ((this: AbortSignal, event: Event) => any) | null;
-  addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-  removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-}
-
-interface RequestInit {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: any;
-  signal?: AbortSignal;
-  [key: string]: any;
-}
-
 interface FileUploaderProps {
   onFilesUploaded: (files: File[]) => void;
 }
@@ -41,21 +25,19 @@ const generateUniqueFileName = (originalName: string): string => {
 };
 
 // 带超时的fetch请求
-const fetchWithTimeout = (url: string, options: RequestInit, timeout: number): Promise<Response> => {
+const fetchWithTimeout = (url: string, options: any, timeout: number): Promise<Response> => {
   return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+    const timeoutId = setTimeout(() => {
+      reject(new Error('请求超时'));
+    }, timeout);
     
-    fetch(url, {
-      ...options,
-      signal: controller.signal
-    })
+    fetch(url, options)
     .then((response) => {
-      clearTimeout(id);
+      clearTimeout(timeoutId);
       resolve(response);
     })
     .catch((error) => {
-      clearTimeout(id);
+      clearTimeout(timeoutId);
       reject(error);
     });
   });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
 import fs from 'fs';
+import path from 'path';
 import { generateUniqueFileName, getStoragePath } from '../../lib/storage-utils';
 import { ensureUploadDirExists } from '../../lib/storage-utils-server';
 import { cloudStorage } from '../../lib/cloud-storage';
@@ -14,6 +15,12 @@ export async function POST(request: NextRequest) {
   try {
     // 确保上传目录存在
     await ensureUploadDirExists();
+    
+    // 检查Content-Type是否为multipart/form-data
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      return NextResponse.json({ error: 'Content-Type必须为multipart/form-data' }, { status: 400 });
+    }
     
     // 解析表单数据
     const formData = await request.formData();
@@ -40,10 +47,15 @@ export async function POST(request: NextRequest) {
     
     if (storageInfo.storageType === 'local') {
       // 本地存储 - 使用绝对路径
-      const path = require('path');
       const absoluteFilePath = path.join(process.cwd(), storageInfo.path);
       
       console.log('📁 本地存储路径:', absoluteFilePath);
+      
+      // 确保目录存在
+      const dir = path.dirname(absoluteFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
       
       // 获取文件流
       const webStream = file.stream();
@@ -55,7 +67,10 @@ export async function POST(request: NextRequest) {
       // 管道传输
       await new Promise<void>((resolve, reject) => {
         nodeStream.pipe(writeStream)
-          .on('finish', () => resolve())
+          .on('finish', () => {
+            console.log('✅ 本地存储写入完成:', fileName);
+            resolve();
+          })
           .on('error', (error) => {
             console.error('❌ 本地存储写入失败:', error);
             reject(error);

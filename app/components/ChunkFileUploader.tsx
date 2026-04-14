@@ -48,22 +48,22 @@ const uploadFileInChunks = async (file: File, onProgress: (progress: number) => 
   return new Promise(async (resolve, reject) => {
     const fileName = generateUniqueFileName(file.name);
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    let uploadedChunks = 0;
+    var uploadedChunks = 0;
     
     try {
-      for (let i = 0; i < totalChunks; i++) {
-        let retries = 0;
-        let uploaded = false;
+      for (var i = 0; i < totalChunks; i++) {
+        var retries = 0;
+        var uploaded = false;
         
         while (!uploaded && retries < MAX_RETRIES) {
           try {
             // 计算当前分块的起始位置和大小
-            const start = i * CHUNK_SIZE;
-            const end = Math.min(start + CHUNK_SIZE, file.size);
-            const chunk = file.slice(start, end);
+            var start = i * CHUNK_SIZE;
+            var end = Math.min(start + CHUNK_SIZE, file.size);
+            var chunk = file.slice(start, end);
             
             // 创建表单数据
-            const formData = new FormData();
+            var formData = new FormData();
             formData.append('file', chunk);
             formData.append('chunkIndex', i.toString());
             formData.append('totalChunks', totalChunks.toString());
@@ -71,7 +71,7 @@ const uploadFileInChunks = async (file: File, onProgress: (progress: number) => 
             formData.append('fileSize', file.size.toString());
             
             // 发送分块到服务器，带超时
-            const response = await fetchWithTimeout('/api/upload', {
+            var response = await fetchWithTimeout('/api/upload', {
               method: 'POST',
               body: formData
             }, REQUEST_TIMEOUT);
@@ -80,10 +80,10 @@ const uploadFileInChunks = async (file: File, onProgress: (progress: number) => 
               throw new Error(`分块上传失败: ${await response.text()}`);
             }
             
-            const result = await response.json();
+            var result = await response.json();
             
             uploadedChunks++;
-            const progress = Math.round((uploadedChunks / totalChunks) * 100);
+            var progress = Math.round((uploadedChunks / totalChunks) * 100);
             onProgress(progress);
             
             // 如果是最后一个分块，返回完整的文件URL
